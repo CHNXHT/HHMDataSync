@@ -1,5 +1,6 @@
 package com.idata.hhmdataconnector;
 
+import cn.hutool.core.date.DateUtil;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
@@ -11,29 +12,35 @@ import static com.idata.hhmdataconnector.utils.tableUtil.createMySQLTable;
 
 public class RawDataSync {
     public static void main(String[] args) throws SQLException {
-
+        String dataSourceName ="CF";
+        String tableName ="T_SJKJ_RMTJ_AJBL";
+        String raw = "raw";
+        String timeField = "SLRQ";
+        String begintime = DateUtil.beginOfDay(DateUtil.lastMonth()).toString("yyyy-MM-dd HH:mm:ss");
+        syncData(dataSourceName,tableName,raw,timeField,begintime);
     }
 
 
-    public static void syncData(String dataSourceName, String tableName) throws SQLException {
+    public static void syncData(String dataSourceName, String tableName , String raw, String timeField, String beginTime) throws SQLException {
 
         SparkSession spark = SparkSession.builder()
-                .appName("raw data sync")
+                .appName("RawDataSync")
                 .master("local[20]")
                 .getOrCreate();
-
-
-        Dataset<Row> rawDF = getRawDF(spark, dataSourceName, tableName);
-
-        /*
-          获取Oracle表的字段结构
-         */
-        StructType rawTableSchema = rawDF.schema();
-
-        /*
-          创建MySQL表的字段结构
-         */
-        createMySQLTable(spark, tableName, rawTableSchema);
+        System.out.println("==========================================================================================================");
+        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName, timeField, beginTime, raw);
+        rawDF.printSchema();
+        System.out.println("============================================================================================================");
+        rawDF.show();
+//        /*
+//          获取Oracle表的字段结构
+//         */
+//        StructType rawTableSchema = rawDF.schema();
+//
+//        /*
+//          创建MySQL表的字段结构
+//         */
+//        createMySQLTable(spark, tableName, rawTableSchema);
 
         /*
           将原始表数据写入MySQL表中

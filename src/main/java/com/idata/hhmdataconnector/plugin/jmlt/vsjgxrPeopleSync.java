@@ -23,7 +23,7 @@ public class vsjgxrPeopleSync {
     public static void main(String[] args) {
         SparkSession spark = SparkSession.builder()
                 .appName("vsjgxrPeopleSync")
-                .master("local")
+                .master("local[20]")
                 .getOrCreate();
         /*
           dataSourceName包括如下
@@ -36,15 +36,15 @@ public class vsjgxrPeopleSync {
         String targetTableName = "t_mediation_case_people";
 
         //获取来源表数据
-        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName);
+        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName,"","","");
         Dataset<Row> rowDataset = rawDF;
 
         //定义数据源对象
         Dataset<V_SJGXR> rowDF = rowDataset.as(Encoders.bean(V_SJGXR.class));
         //需要和case ，ZD表join
         //关联case表获取id
-        Dataset<Row> caseDF = getRawDF(spark, "t_mediation_case", "HHM").select("id","resource_id");
-        Dataset<V_ZD> vzdDF = getRawDF(spark, "V_ZD", dataSourceName).as(Encoders.bean(V_ZD.class));
+        Dataset<Row> caseDF = getRawDF(spark, "t_mediation_case", "HHM","","","").select("id","resource_id");
+        Dataset<V_ZD> vzdDF = getRawDF(spark, "V_ZD", dataSourceName,"","","").as(Encoders.bean(V_ZD.class));
 
         Dataset<Row> joinDF = rowDF
                 .join(caseDF, rowDF.col("AJID").equalTo(caseDF.col("resource_id")), "left")

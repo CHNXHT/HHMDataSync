@@ -51,6 +51,10 @@ public class tableUtil {
             return "DOUBLE";
         } else if (dataType instanceof StringType) {
             return "VARCHAR(255)";
+        } else if (dataType instanceof TimestampType){
+            return "DATETIME";
+        } else if (dataType instanceof DecimalType) {
+            return "BIGINT";
         } else {
             throw new IllegalArgumentException("Unsupported data type: " + dataType);
         }

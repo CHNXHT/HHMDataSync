@@ -16,10 +16,10 @@ import static com.idata.hhmdataconnector.utils.connectionUtil.hhm_mysqlPropertie
  * @date: 2023/7/10 16:18
  */
 public class tjjlLogSync {
-    public static void main(String[] args) {
+    public static void syncByday(String beginTime){
         SparkSession spark = SparkSession.builder()
                 .appName("tjjlLogSync")
-                .master("local")
+                .master("local[20]")
                 .getOrCreate();
         /*
           dataSourceName包括如下
@@ -32,13 +32,13 @@ public class tjjlLogSync {
         String targetTableName = "t_mediation_case_log";
 
         //获取来源表数据
-        Dataset<Row> rawDF0 = getRawDF(spark, tableName, dataSourceName)
+        Dataset<Row> rawDF0 = getRawDF(spark, tableName, dataSourceName,"","","")
                 .withColumnRenamed("TJRQ", "create_time")
                 .withColumnRenamed("TJJL", "log_description")
                 .select("AJBH","create_time","log_description");
         rawDF0.printSchema();
 
-        Dataset<Row> rawDF1 = getRawDF(spark, "T_SJKJ_RMTJ_DCJL", dataSourceName)
+        Dataset<Row> rawDF1 = getRawDF(spark, "T_SJKJ_RMTJ_DCJL", dataSourceName,"","","")
                 .withColumnRenamed("DCRQ", "create_time")
                 .withColumnRenamed("DCJL", "log_description")
                 .select("AJBH","create_time","log_description");
@@ -51,7 +51,7 @@ public class tjjlLogSync {
 //        Dataset<T_SJKJ_RMTJ_TJJL> rowDF = rowDataset.as(Encoders.bean(T_SJKJ_RMTJ_TJJL.class));
 
         //关联case表获取id
-        Dataset<t_mediation_case> caseDF = getRawDF(spark, "t_mediation_case", "HHM").as(Encoders.bean(t_mediation_case.class));
+        Dataset<t_mediation_case> caseDF = getRawDF(spark, "t_mediation_case", "HHM","","","").as(Encoders.bean(t_mediation_case.class));
 
         Dataset<Row> joinDF = rowDataset.join(caseDF, rowDataset.col("AJBH").equalTo(caseDF.col("case_num")), "left");
 

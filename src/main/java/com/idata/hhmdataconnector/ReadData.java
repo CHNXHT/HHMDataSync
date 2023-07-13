@@ -7,7 +7,7 @@ import org.apache.spark.sql.SparkSession;
 import java.util.Properties;
 
 public class ReadData {
-    public static Dataset<Row> getRawDF(SparkSession sparkSession, String sourceTableName, String sourceName){
+    public static Dataset<Row> getRawDF(SparkSession sparkSession, String sourceTableName, String sourceName,String timeField,String beginTime,String rawFlag){
          /*
         获取数据源配置信息参数
          */
@@ -31,27 +31,27 @@ public class ReadData {
 
         String mysqlDriver = "com.mysql.jdbc.Driver";
         String oracleDriver = "oracle.jdbc.driver.OracleDriver";
+        String driver = "";
 
-        if (sourceName.equals("HHM")){
-            Dataset<Row> rawDF = sparkSession
-                    .read()
-                    .option("driver",mysqlDriver)
-                    .jdbc(dataSource.getUrl(), sourceTableName, origin_properties)
-                    .toDF();
-            return rawDF;
+        if(sourceName.equals("HHM")){
+            driver = mysqlDriver;
         }else {
-//            origin_properties.setProperty("driver-class-name", "oracle.jdbc.driver.OracleDriver");
-            Dataset<Row> rawDF = sparkSession
-                    .read()
-                    .option("driver",oracleDriver)
-                    .jdbc(dataSource.getUrl(), sourceTableName, origin_properties)
-                    .toDF();
-            return rawDF;
+            driver = oracleDriver;
         }
 
-        /*
-          原始表数据读取到Dataset对象中
-         */
+        Dataset<Row> rawDF = sparkSession
+                .read()
+                .option("driver",driver)
+                .jdbc(dataSource.getUrl(), sourceTableName, origin_properties)
+                .toDF();
+
+        if(rawFlag.equals("raw")){
+            //初始化同步原始所有数据
+            return rawDF.where(rawDF.col(timeField).$less(beginTime));
+        }else {
+            //每天同步前一天数据（24-0）
+            return rawDF.where(rawDF.col(timeField).$greater(beginTime));
+        }
 
     }
 }

@@ -1,5 +1,7 @@
 package com.idata.hhmdataconnector.plugin.cf;
 
+import cn.hutool.core.date.DateTime;
+import cn.hutool.core.date.DateUtil;
 import com.idata.hhmdataconnector.DataSource;
 import com.idata.hhmdataconnector.model.cf.T_SJKJ_RMTJ_AJBL;
 import com.idata.hhmdataconnector.model.hhm.t_mediation_case;
@@ -7,6 +9,8 @@ import org.apache.spark.sql.*;
 import org.apache.spark.sql.types.DataTypes;
 import scala.Function1;
 import java.io.Serializable;
+import java.util.Date;
+
 import static com.idata.hhmdataconnector.ReadData.getRawDF;
 import static com.idata.hhmdataconnector.utils.connectionUtil.hhm_mysqlProperties;
 
@@ -17,7 +21,9 @@ import static com.idata.hhmdataconnector.utils.connectionUtil.hhm_mysqlPropertie
  */
 public class ajblCaseSync {
     public static void main(String[] args) {
-        syncByday( "2022-02-02");
+        String begintime = DateUtil.beginOfDay(DateUtil.lastMonth()).toString("yyyy-MM-dd HH:mm:ss");
+        System.out.println(begintime);
+        syncByday( begintime);
     }
 
     public static void syncByday(String beginTime) {
@@ -34,11 +40,12 @@ public class ajblCaseSync {
          */
         String dataSourceName = "CF";//args[0];
         String tableName = "T_SJKJ_RMTJ_AJBL";//args[1];
-        String targetTableName = "t_mediation_case";
+        String targetTableName = "t_mediation_case_test";
+        String raw = "oneday";
+        String timeField = "SLRQ";
 
-        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName);
-        rawDF.printSchema();
-        rawDF.show();
+        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName, timeField, beginTime, raw);
+
         //获取来源表数据
         if(!beginTime.equals("raw")){
             rawDF.where(rawDF.col("FSRQ").$greater(beginTime));
@@ -48,12 +55,12 @@ public class ajblCaseSync {
         ;
         //定义数据源对象
         Dataset<T_SJKJ_RMTJ_AJBL> rowDF = rowDataset.as(Encoders.bean(T_SJKJ_RMTJ_AJBL.class));
-        rowDF.show();
+
 
         //转化为目标表结构
         Dataset<t_mediation_case> tcDF = rowDF
                 .map(new ConvertToTMediationCase(), Encoders.bean(t_mediation_case.class));
-
+        tcDF.show(10);
         tcDF
                 .write()
                 .mode(SaveMode.Append)

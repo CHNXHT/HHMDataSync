@@ -18,7 +18,7 @@ public class caseParticipantSync {
     public static void main(String[] args) {
         SparkSession spark = SparkSession.builder()
                 .appName("caseParticipantSync")
-                .master("local")
+                .master("local[20]")
                 .getOrCreate();
         /*
           dataSourceName包括如下
@@ -31,7 +31,7 @@ public class caseParticipantSync {
         String targetTableName = "t_mediation_participant";
 
         //获取来源表数据
-        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName);
+        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName,"","","");
 
         //转化为目标表结构
         Dataset<t_mediation_participant> tcDF = rawDF

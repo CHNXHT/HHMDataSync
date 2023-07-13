@@ -20,7 +20,7 @@ public class vspjgLogSync {
     public static void main(String[] args) {
         SparkSession spark = SparkSession.builder()
                 .appName("vspjgLogSync")
-                .master("local")
+                .master("local[20]")
                 .getOrCreate();
         /*
           dataSourceName包括如下
@@ -33,14 +33,14 @@ public class vspjgLogSync {
         String targetTableName = "t_mediation_case_log";
 
         //获取来源表数据
-        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName);
+        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName,"","","");
         Dataset<Row> rowDataset = rawDF;
 
         //定义数据源对象
         Dataset<V_SPJG> rowDF = rowDataset.as(Encoders.bean(V_SPJG.class));
 
         //关联case表获取id
-        Dataset<t_mediation_case> caseDF = getRawDF(spark, "t_mediation_case", "HHM").as(Encoders.bean(t_mediation_case.class));
+        Dataset<t_mediation_case> caseDF = getRawDF(spark, "t_mediation_case", "HHM","","","").as(Encoders.bean(t_mediation_case.class));
 
         Dataset<Row> joinDF = rowDF.join(caseDF, rowDF.col("LSH").equalTo(caseDF.col("resource_id")), "left");
 

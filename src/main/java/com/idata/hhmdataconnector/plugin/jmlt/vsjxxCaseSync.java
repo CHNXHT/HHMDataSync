@@ -18,7 +18,7 @@ public class vsjxxCaseSync {
 
         SparkSession spark = SparkSession.builder()
                 .appName("vsjxxCaseSync")
-                .master("local[16]")
+                .master("local[20]")
                 .getOrCreate();
 
         /*
@@ -32,7 +32,7 @@ public class vsjxxCaseSync {
         String targetTableName = "t_mediation_case_test";
 
         //获取来源表数据
-        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName);
+        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName,"","","");
         Dataset<Row> rowDataset = rawDF.withColumn("SJRS", rawDF.col("SJRS").cast(DataTypes.LongType));
         //定义数据源对象
         Dataset<V_SJXX> vsjxxDF = rowDataset.as(Encoders.bean(V_SJXX.class));

@@ -16,10 +16,10 @@ import static com.idata.hhmdataconnector.utils.connectionUtil.hhm_mysqlPropertie
  */
 public class ajblTJWYHParticpantSync {
 
-    public static void main(String[] args) {
+    public static void syncByday(String beginTime) {
         SparkSession spark = SparkSession.builder()
                 .appName("ajblTJWYHParticpantSync")
-                .master("local")
+                .master("local[20]")
                 .getOrCreate();
         /*
           dataSourceName包括如下
@@ -30,11 +30,13 @@ public class ajblTJWYHParticpantSync {
         String dataSourceName = "HHM";//args[0];
         String tableName = "t_mediation_case";//args[1];
         String targetTableName = "t_mediation_participant";
+        String raw = "oneday";
+        String timeField = "";
 
         //获取来源表数据
-        Dataset<Row> rawCaseDF = getRawDF(spark, "t_mediation_case", "HHM").select("id","case_num");
-        Dataset<Row> rawAJBLDF = getRawDF(spark, "T_SJKJ_RMTJ_AJBL", "CF").select("SLDW","AJBH");
-        Dataset<Row> rawTJWYHDF = getRawDF(spark, "T_SJKJ_RMTJ_TJWYH", "CF").select("XZDQ","TWHMC");
+        Dataset<Row> rawCaseDF = getRawDF(spark, "t_mediation_case", "HHM","","","").select("id","case_num");
+        Dataset<Row> rawAJBLDF = getRawDF(spark, "T_SJKJ_RMTJ_AJBL", "CF","","","").select("SLDW","AJBH");
+        Dataset<Row> rawTJWYHDF = getRawDF(spark, "T_SJKJ_RMTJ_TJWYH", "CF","","","").select("XZDQ","TWHMC");
         Dataset<Row> AJBL_TJWYH_DF = rawAJBLDF
                 .join(rawTJWYHDF, rawAJBLDF.col("SLDW").equalTo(rawTJWYHDF.col("TWHMC")))
                 .select("AJBH","XZDQ")
@@ -44,7 +46,7 @@ public class ajblTJWYHParticpantSync {
                 .join(AJBL_TJWYH_DF, rawCaseDF.col("case_num").equalTo(AJBL_TJWYH_DF.col("AJBH")))
                 .distinct();
 
-        Dataset<Row> organizationDF = getRawDF(spark, "t_organization", "HHM")
+        Dataset<Row> organizationDF = getRawDF(spark, "t_organization", "HHM","","","")
                 .select("id","county")
                 .where("town = ''")
                 .where("country !=''");

@@ -18,10 +18,10 @@ import static com.idata.hhmdataconnector.utils.connectionUtil.hhm_mysqlPropertie
  * @date: 2023/7/10 18:23
  */
 public class ajdsrPeopleSync {
-    public static void main(String[] args) {
+    public static void syncByday(String beginTime) {
         SparkSession spark = SparkSession.builder()
                 .appName("ajdsrPeopleSync")
-                .master("local")
+                .master("local[20]")
                 .getOrCreate();
         /*
           dataSourceName包括如下
@@ -34,15 +34,15 @@ public class ajdsrPeopleSync {
         String targetTableName = "t_mediation_case_people";
 
         //获取来源表数据
-        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName);
+        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName,"","","");
         Dataset<Row> rowDataset = rawDF;
 
         //定义数据源对象
         Dataset<T_SJKJ_RMTJ_AJDSR> rowDF = rowDataset.as(Encoders.bean(T_SJKJ_RMTJ_AJDSR.class));
         //需要和case ，ZD表join
         //关联case表获取id
-        Dataset<Row> caseDF = getRawDF(spark, "t_mediation_case", "HHM").where("case_source = '2'").select("id","case_num");
-        Dataset<V_ZD> vzdDF = getRawDF(spark, "V_ZD", "JMLT").as(Encoders.bean(V_ZD.class));
+        Dataset<Row> caseDF = getRawDF(spark, "t_mediation_case", "HHM","","","").where("case_source = '2'").select("id","case_num");
+        Dataset<V_ZD> vzdDF = getRawDF(spark, "V_ZD", "JMLT","","","").as(Encoders.bean(V_ZD.class));
 
         Dataset<Row> joinDF = rowDF
                 .join(caseDF, rowDF.col("AJBH").equalTo(caseDF.col("case_num")), "left")
