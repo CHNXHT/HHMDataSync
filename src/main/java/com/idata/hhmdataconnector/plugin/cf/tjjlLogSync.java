@@ -1,5 +1,6 @@
 package com.idata.hhmdataconnector.plugin.cf;
 
+import cn.hutool.core.date.DateUtil;
 import com.idata.hhmdataconnector.DataSource;
 import com.idata.hhmdataconnector.model.hhm.t_mediation_case;
 import com.idata.hhmdataconnector.model.hhm.t_mediation_case_log;
@@ -30,15 +31,16 @@ public class tjjlLogSync {
         String dataSourceName = "CF";//args[0];
         String tableName = "T_SJKJ_RMTJ_TJJL";//args[1];
         String targetTableName = "t_mediation_case_log";
-
+        String begintime = DateUtil.beginOfDay(DateUtil.lastMonth()).toString("yyyy-MM-dd");
+        String raw = "oneday";
         //获取来源表数据
-        Dataset<Row> rawDF0 = getRawDF(spark, tableName, dataSourceName,"","","")
+        Dataset<Row> rawDF0 = getRawDF(spark, tableName, dataSourceName,"TJRQ",begintime,raw)
                 .withColumnRenamed("TJRQ", "create_time")
                 .withColumnRenamed("TJJL", "log_description")
                 .select("AJBH","create_time","log_description");
         rawDF0.printSchema();
 
-        Dataset<Row> rawDF1 = getRawDF(spark, "T_SJKJ_RMTJ_DCJL", dataSourceName,"","","")
+        Dataset<Row> rawDF1 = getRawDF(spark, "T_SJKJ_RMTJ_DCJL", dataSourceName,"DCRQ",begintime,raw)
                 .withColumnRenamed("DCRQ", "create_time")
                 .withColumnRenamed("DCJL", "log_description")
                 .select("AJBH","create_time","log_description");

@@ -29,12 +29,12 @@ public class caseParticipantSync {
         String dataSourceName = "HHM";//args[0];
         String tableName = "t_mediation_case";//args[1];
         String targetTableName = "t_mediation_participant";
-
+        String begintime = DateUtil.beginOfDay(DateUtil.lastMonth()).toString("yyyy-MM-dd HH:mm:ss");
         //获取来源表数据
-        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName,"","","");
+        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName,"updatetime",begintime,"oneday");
 
         //转化为目标表结构
-        Dataset<t_mediation_participant> tcDF = rawDF
+        Dataset<t_mediation_participant> tcDF = rawDF.where(rawDF.col("updatetime").$greater(begintime))
                 .map(new convertToTMediationParticipant(), Encoders.bean(t_mediation_participant.class));
         tcDF.show(10);
         tcDF

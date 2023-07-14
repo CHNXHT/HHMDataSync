@@ -22,11 +22,13 @@ import static com.idata.hhmdataconnector.utils.connectionUtil.hhm_mysqlPropertie
 public class ajblCaseSync {
     public static void main(String[] args) {
         String begintime = DateUtil.beginOfDay(DateUtil.lastMonth()).toString("yyyy-MM-dd HH:mm:ss");
+        String raw = "oneday";
+
         System.out.println(begintime);
-        syncByday( begintime);
+        syncByday( begintime,raw);
     }
 
-    public static void syncByday(String beginTime) {
+    public static void syncByday(String beginTime,String raw) {
         SparkSession spark = SparkSession.builder()
                 .appName("ajblCaseSync")
                 .master("local[16]")
@@ -41,7 +43,6 @@ public class ajblCaseSync {
         String dataSourceName = "CF";//args[0];
         String tableName = "T_SJKJ_RMTJ_AJBL";//args[1];
         String targetTableName = "t_mediation_case_test";
-        String raw = "oneday";
         String timeField = "SLRQ";
 
         Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName, timeField, beginTime, raw);
@@ -56,11 +57,10 @@ public class ajblCaseSync {
         //定义数据源对象
         Dataset<T_SJKJ_RMTJ_AJBL> rowDF = rowDataset.as(Encoders.bean(T_SJKJ_RMTJ_AJBL.class));
 
-
         //转化为目标表结构
         Dataset<t_mediation_case> tcDF = rowDF
                 .map(new ConvertToTMediationCase(), Encoders.bean(t_mediation_case.class));
-        tcDF.show(10);
+//        tcDF.show(10);
         tcDF
                 .write()
                 .mode(SaveMode.Append)

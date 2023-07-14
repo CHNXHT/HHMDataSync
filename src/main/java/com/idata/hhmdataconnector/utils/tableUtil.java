@@ -40,6 +40,20 @@ public class tableUtil {
         connection.close();
     }
 
+    public static void  deleteCFdata(String createTableQuery, String jdbcUrl, String username, String password) throws SQLException {
+        // Establish JDBC connection
+        Connection connection = DriverManager.getConnection(jdbcUrl, username, password);
+
+        // Create statement and execute the query
+        Statement statement = connection.createStatement();
+        statement.executeUpdate(createTableQuery);
+
+        // Close the statement and connection
+        statement.close();
+        connection.close();
+    }
+
+
     public static String oracleToMySQLDataType(DataType dataType) {
         if (dataType instanceof IntegerType) {
             return "INT";

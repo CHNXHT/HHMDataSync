@@ -48,10 +48,11 @@ public class ReadData {
         if(rawFlag.equals("raw")){
             //初始化同步原始所有数据
             return rawDF.where(rawDF.col(timeField).$less(beginTime));
-        }else {
+        }else if(rawFlag.equals("oneday")){
             //每天同步前一天数据（24-0）
             return rawDF.where(rawDF.col(timeField).$greater(beginTime));
+        }else {
+            return rawDF;
         }
-
     }
 }

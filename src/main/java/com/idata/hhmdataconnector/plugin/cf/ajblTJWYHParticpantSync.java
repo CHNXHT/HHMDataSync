@@ -15,8 +15,12 @@ import static com.idata.hhmdataconnector.utils.connectionUtil.hhm_mysqlPropertie
  * @date: 2023/7/11 8:55
  */
 public class ajblTJWYHParticpantSync {
+    public static void main(String[] args) {
+        String beginTime = DateUtil.beginOfDay(DateUtil.lastMonth()).toString("yyyy-MM-dd HH:mm:ss");
+        syncByday(beginTime,"raw");
+    }
 
-    public static void syncByday(String beginTime) {
+    public static void syncByday(String beginTime, String raw) {
         SparkSession spark = SparkSession.builder()
                 .appName("ajblTJWYHParticpantSync")
                 .master("local[20]")
@@ -29,27 +33,32 @@ public class ajblTJWYHParticpantSync {
          */
         String dataSourceName = "HHM";//args[0];
         String tableName = "t_mediation_case";//args[1];
-        String targetTableName = "t_mediation_participant";
-        String raw = "oneday";
-        String timeField = "";
+        String targetTableName = "t_mediation_participant_test";
+        String timeField = "SLRQ";
+
 
         //获取来源表数据
-        Dataset<Row> rawCaseDF = getRawDF(spark, "t_mediation_case", "HHM","","","").select("id","case_num");
-        Dataset<Row> rawAJBLDF = getRawDF(spark, "T_SJKJ_RMTJ_AJBL", "CF","","","").select("SLDW","AJBH");
-        Dataset<Row> rawTJWYHDF = getRawDF(spark, "T_SJKJ_RMTJ_TJWYH", "CF","","","").select("XZDQ","TWHMC");
+        Dataset<Row> rawCaseDF = getRawDF(spark, "t_mediation_case_test", "HHM","","","")
+                .select("id","case_num");
+        Dataset<Row> rawAJBLDF = getRawDF(spark, "T_SJKJ_RMTJ_AJBL", "CF",timeField,beginTime,raw)
+                .select("SLDW","AJBH");
+        Dataset<Row> rawTJWYHDF = getRawDF(spark, "T_SJKJ_RMTJ_TJWYH", "CF","","","")
+                .select("XZDQ","TWHMC");
+
         Dataset<Row> AJBL_TJWYH_DF = rawAJBLDF
-                .join(rawTJWYHDF, rawAJBLDF.col("SLDW").equalTo(rawTJWYHDF.col("TWHMC")))
+                .join(rawTJWYHDF, rawAJBLDF.col("SLDW").equalTo(rawTJWYHDF.col("TWHMC")),"left")
                 .select("AJBH","XZDQ")
                 .distinct();
+        System.out.println(AJBL_TJWYH_DF.count());
 
-        Dataset<Row> caseJoinDF = rawCaseDF
-                .join(AJBL_TJWYH_DF, rawCaseDF.col("case_num").equalTo(AJBL_TJWYH_DF.col("AJBH")))
+        Dataset<Row> caseJoinDF = AJBL_TJWYH_DF
+                .join(rawCaseDF, rawCaseDF.col("case_num").equalTo(AJBL_TJWYH_DF.col("AJBH")),"left")
                 .distinct();
 
         Dataset<Row> organizationDF = getRawDF(spark, "t_organization", "HHM","","","")
-                .select("id","county")
-                .where("town = ''")
-                .where("country !=''");
+                .select("id","county");
+//                .where("town = ''")
+//                .where("county !=''");
 
         Dataset<Row> organCountryDF = organizationDF.withColumn("county_6", organizationDF.col("county").substr(1, 6));
 
@@ -59,8 +68,9 @@ public class ajblTJWYHParticpantSync {
         //转化为目标表结构
         Dataset<t_mediation_participant> tcDF = resDF
                 .map(new convertToTMediationParticipant(), Encoders.bean(t_mediation_participant.class));
-        tcDF.show(10);
+        tcDF.distinct().show(10);
         tcDF
+                .distinct()
                 .repartition(20)
                 .write()
                 .mode(SaveMode.Append)
@@ -76,13 +86,12 @@ public class ajblTJWYHParticpantSync {
             if(cas.getAs("id") !=null){
                 tmediationcasepeople.setCase_id(Long.parseLong(cas.getAs("id").toString()));
             }
-
             //调解机构/调解员标识：1 调解机构、 2 调解员、3 协同调解员
             tmediationcasepeople.setFlag(1);
             //创建日期
-            tmediationcasepeople.setCreate_time(DateUtil.date().toString());
+            tmediationcasepeople.setCreate_time(DateUtil.now());
             //更新日期
-            tmediationcasepeople.setUpdate_time(DateUtil.date().toString());
+            tmediationcasepeople.setUpdate_time(DateUtil.now());
             //纠纷机构id 766为肥东
             tmediationcasepeople.setOrg_id(766L);
             //案件流转参与者id 即能看到该纠纷数据的用户id 12310（叶秀）

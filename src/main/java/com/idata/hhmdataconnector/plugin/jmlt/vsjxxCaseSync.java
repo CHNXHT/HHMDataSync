@@ -1,5 +1,6 @@
 package com.idata.hhmdataconnector.plugin.jmlt;
 
+import cn.hutool.core.date.DateUtil;
 import com.idata.hhmdataconnector.DataSource;
 import com.idata.hhmdataconnector.model.hhm.t_mediation_case;
 import com.idata.hhmdataconnector.model.jmlt.V_SJXX;
@@ -30,9 +31,11 @@ public class vsjxxCaseSync {
         String dataSourceName = "JMLT";//args[0];
         String tableName = "V_SJXX";//args[1];
         String targetTableName = "t_mediation_case_test";
-
+        String begintime = DateUtil.beginOfDay(DateUtil.lastMonth()).toString("yyyyMMddHHmmss");
+        String raw = "oneday";
+        String other_raw = "";
         //获取来源表数据
-        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName,"","","");
+        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName,"GXSJ",begintime,raw);
         Dataset<Row> rowDataset = rawDF.withColumn("SJRS", rawDF.col("SJRS").cast(DataTypes.LongType));
         //定义数据源对象
         Dataset<V_SJXX> vsjxxDF = rowDataset.as(Encoders.bean(V_SJXX.class));

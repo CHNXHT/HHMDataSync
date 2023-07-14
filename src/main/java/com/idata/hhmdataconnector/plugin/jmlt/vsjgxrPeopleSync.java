@@ -1,5 +1,6 @@
 package com.idata.hhmdataconnector.plugin.jmlt;
 
+import cn.hutool.core.date.DateUtil;
 import com.idata.hhmdataconnector.DataSource;
 import com.idata.hhmdataconnector.model.hhm.t_mediation_case_people;
 import com.idata.hhmdataconnector.model.jmlt.V_SJGXR;
@@ -34,17 +35,19 @@ public class vsjgxrPeopleSync {
         String dataSourceName = "JMLT";//args[0];
         String tableName = "V_SJGXR";//args[1];
         String targetTableName = "t_mediation_case_people";
-
+        String begintime = DateUtil.beginOfDay(DateUtil.lastMonth()).toString("yyyyMMddHHmmss");
+        String raw = "oneday";
+        String other_raw = "";
         //获取来源表数据
-        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName,"","","");
+        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName,"","",raw);
         Dataset<Row> rowDataset = rawDF;
 
         //定义数据源对象
         Dataset<V_SJGXR> rowDF = rowDataset.as(Encoders.bean(V_SJGXR.class));
         //需要和case ，ZD表join
         //关联case表获取id
-        Dataset<Row> caseDF = getRawDF(spark, "t_mediation_case", "HHM","","","").select("id","resource_id");
-        Dataset<V_ZD> vzdDF = getRawDF(spark, "V_ZD", dataSourceName,"","","").as(Encoders.bean(V_ZD.class));
+        Dataset<Row> caseDF = getRawDF(spark, "t_mediation_case", "HHM","update_time",begintime,other_raw).select("id","resource_id");
+        Dataset<V_ZD> vzdDF = getRawDF(spark, "V_ZD", dataSourceName,"","",other_raw).as(Encoders.bean(V_ZD.class));
 
         Dataset<Row> joinDF = rowDF
                 .join(caseDF, rowDF.col("AJID").equalTo(caseDF.col("resource_id")), "left")
