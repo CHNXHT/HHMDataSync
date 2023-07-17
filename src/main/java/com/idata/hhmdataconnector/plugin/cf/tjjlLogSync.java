@@ -17,7 +17,12 @@ import static com.idata.hhmdataconnector.utils.connectionUtil.hhm_mysqlPropertie
  * @date: 2023/7/10 16:18
  */
 public class tjjlLogSync {
-    public static void syncByday(String beginTime){
+    public static void main(String[] args) {
+//        String begintime = DateUtil.beginOfDay(DateUtil.lastMonth()).toString("yyyy-MM-dd");
+//        String raw = "raw";
+//        dataSync(begintime,raw);
+    }
+    public static void dataSync(String beginTime,String endTime, String raw){
         SparkSession spark = SparkSession.builder()
                 .appName("tjjlLogSync")
                 .master("local[20]")
@@ -30,21 +35,21 @@ public class tjjlLogSync {
          */
         String dataSourceName = "CF";//args[0];
         String tableName = "T_SJKJ_RMTJ_TJJL";//args[1];
-        String targetTableName = "t_mediation_case_log";
-        String begintime = DateUtil.beginOfDay(DateUtil.lastMonth()).toString("yyyy-MM-dd");
-        String raw = "oneday";
+        String targetTableName = "t_mediation_case_log_test";
+        String beginTimeStr = DateUtil.parse(beginTime).toString("yyyy-MM-dd");
+        String endTimeStr = DateUtil.parse(endTime).toString("yyyy-MM-dd");
         //获取来源表数据
-        Dataset<Row> rawDF0 = getRawDF(spark, tableName, dataSourceName,"TJRQ",begintime,raw)
+        Dataset<Row> rawDF0 = getRawDF(spark, tableName, dataSourceName,"TJRQ",beginTimeStr,endTimeStr,raw)
                 .withColumnRenamed("TJRQ", "create_time")
                 .withColumnRenamed("TJJL", "log_description")
                 .select("AJBH","create_time","log_description");
-        rawDF0.printSchema();
+//        rawDF0.printSchema();
 
-        Dataset<Row> rawDF1 = getRawDF(spark, "T_SJKJ_RMTJ_DCJL", dataSourceName,"DCRQ",begintime,raw)
+        Dataset<Row> rawDF1 = getRawDF(spark, "T_SJKJ_RMTJ_DCJL", dataSourceName,"DCRQ",beginTimeStr,endTimeStr,raw)
                 .withColumnRenamed("DCRQ", "create_time")
                 .withColumnRenamed("DCJL", "log_description")
                 .select("AJBH","create_time","log_description");
-        rawDF1.printSchema();
+//        rawDF1.printSchema();
 
         Dataset<Row> rawDF = rawDF0.union(rawDF1);
         Dataset<Row> rowDataset = rawDF;
@@ -53,20 +58,20 @@ public class tjjlLogSync {
 //        Dataset<T_SJKJ_RMTJ_TJJL> rowDF = rowDataset.as(Encoders.bean(T_SJKJ_RMTJ_TJJL.class));
 
         //关联case表获取id
-        Dataset<t_mediation_case> caseDF = getRawDF(spark, "t_mediation_case", "HHM","","","").as(Encoders.bean(t_mediation_case.class));
+        Dataset<t_mediation_case> caseDF = getRawDF(spark, "t_mediation_case_test", "HHM","","","","").as(Encoders.bean(t_mediation_case.class));
 
         Dataset<Row> joinDF = rowDataset.join(caseDF, rowDataset.col("AJBH").equalTo(caseDF.col("case_num")), "left");
 
-        joinDF.show(10);
         //转化为目标表结构
         Dataset<t_mediation_case_log> tcDF = joinDF
                 .map(new ConvertToTMediationLog(), Encoders.bean(t_mediation_case_log.class));
-
+//        tcDF.show();
         tcDF
                 .repartition(20)
                 .write()
                 .mode(SaveMode.Append)
                 .jdbc(DataSource.HHM.getUrl(), targetTableName, hhm_mysqlProperties());
+        spark.close();
     }
     public static class ConvertToTMediationLog implements Function1<Row, t_mediation_case_log>, Serializable {
         @Override
@@ -78,6 +83,9 @@ public class tjjlLogSync {
             if(vspjg.getAs("create_time") != null){
                 logEntity.setCreate_time(vspjg.getAs("create_time"));
                 logEntity.setUpdate_time(DateUtils.strToTsSFM(vspjg.getAs("create_time").toString()));
+            }else {
+                logEntity.setCreate_time(DateUtil.now());
+                logEntity.setUpdate_time(DateUtil.now());
             }
             if(vspjg.getAs("log_description") != null){
                 logEntity.setLog_description(vspjg.getAs("log_description").toString());

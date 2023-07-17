@@ -21,14 +21,14 @@ import static com.idata.hhmdataconnector.utils.connectionUtil.hhm_mysqlPropertie
  */
 public class ajblCaseSync {
     public static void main(String[] args) {
-        String begintime = DateUtil.beginOfDay(DateUtil.lastMonth()).toString("yyyy-MM-dd HH:mm:ss");
-        String raw = "oneday";
-
-        System.out.println(begintime);
-        syncByday( begintime,raw);
+//        String begintime = DateUtil.beginOfDay(DateUtil.lastMonth()).toString("yyyy-MM-dd HH:mm:ss");
+//        String raw = "oneday";
+//
+//        System.out.println(begintime);
+//        dataSync( begintime,raw);
     }
 
-    public static void syncByday(String beginTime,String raw) {
+    public static void dataSync(String beginTime,String endTime, String raw) {
         SparkSession spark = SparkSession.builder()
                 .appName("ajblCaseSync")
                 .master("local[16]")
@@ -45,10 +45,12 @@ public class ajblCaseSync {
         String targetTableName = "t_mediation_case_test";
         String timeField = "SLRQ";
 
-        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName, timeField, beginTime, raw);
+        String beginTimeStr = DateUtil.parse(beginTime).toString("yyyy-MM-dd HH:mm:ss");
+        String endTimeStr = DateUtil.parse(endTime).toString("yyyy-MM-dd HH:mm:ss");
+        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName, timeField, beginTimeStr,endTimeStr, raw);
 
         //获取来源表数据
-        if(!beginTime.equals("raw")){
+        if(!beginTimeStr.equals("raw")){
             rawDF.where(rawDF.col("FSRQ").$greater(beginTime));
         }
 //        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName).filter();
@@ -65,6 +67,8 @@ public class ajblCaseSync {
                 .write()
                 .mode(SaveMode.Append)
                 .jdbc(DataSource.HHM.getUrl(), targetTableName, hhm_mysqlProperties());
+
+        spark.close();
     }
 
     public static class ConvertToTMediationCase implements Function1<T_SJKJ_RMTJ_AJBL, t_mediation_case>, Serializable {

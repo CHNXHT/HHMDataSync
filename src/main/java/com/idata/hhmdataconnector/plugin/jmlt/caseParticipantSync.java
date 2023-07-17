@@ -16,6 +16,11 @@ import static com.idata.hhmdataconnector.utils.connectionUtil.hhm_mysqlPropertie
  */
 public class caseParticipantSync {
     public static void main(String[] args) {
+//        String begintime = DateUtil.beginOfDay(DateUtil.lastMonth()).toString("yyyy-MM-dd HH:mm:ss");
+//        String raw = "oneday";
+//        dataSync(begintime, raw);
+    }
+    public static void dataSync(String beginTime,String endTime, String raw) {
         SparkSession spark = SparkSession.builder()
                 .appName("caseParticipantSync")
                 .master("local[20]")
@@ -27,21 +32,26 @@ public class caseParticipantSync {
           3、HHM
          */
         String dataSourceName = "HHM";//args[0];
-        String tableName = "t_mediation_case";//args[1];
-        String targetTableName = "t_mediation_participant";
-        String begintime = DateUtil.beginOfDay(DateUtil.lastMonth()).toString("yyyy-MM-dd HH:mm:ss");
+        String tableName = "t_mediation_case_test";//args[1];
+        String targetTableName = "t_mediation_participant_test";
+        String beginTimeStr = DateUtil.parse(beginTime).toString("yyyy-MM-dd HH:mm:ss");
+        String endTimeStr = DateUtil.parse(beginTime).toString("yyyy-MM-dd HH:mm:ss");
         //获取来源表数据
-        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName,"updatetime",begintime,"oneday");
+        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName,"create_time",beginTimeStr,endTimeStr,"oneday");
 
         //转化为目标表结构
-        Dataset<t_mediation_participant> tcDF = rawDF.where(rawDF.col("updatetime").$greater(begintime))
+        Dataset<t_mediation_participant> tcDF = rawDF
+//                .where(rawDF.col("create_time").$greater(beginTime))
                 .map(new convertToTMediationParticipant(), Encoders.bean(t_mediation_participant.class));
-        tcDF.show(10);
+
+//        tcDF.distinct().show(10);
         tcDF
+                .distinct()
                 .repartition(20)
                 .write()
                 .mode(SaveMode.Append)
                 .jdbc(DataSource.HHM.getUrl(), targetTableName, hhm_mysqlProperties());
+        spark.close();
     }
 
     public static class convertToTMediationParticipant implements Function1<Row, t_mediation_participant>, Serializable {

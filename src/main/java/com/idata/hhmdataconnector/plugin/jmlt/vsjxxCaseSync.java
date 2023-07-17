@@ -16,6 +16,11 @@ import static com.idata.hhmdataconnector.ReadData.getRawDF;
 import static com.idata.hhmdataconnector.utils.connectionUtil.hhm_mysqlProperties;
 public class vsjxxCaseSync {
     public static void main(String[] args) {
+//        String begintime = DateUtil.beginOfDay(DateUtil.lastMonth()).toString("yyyyMMddHHmmss");
+//        String raw = "raw";
+//        dataSync(begintime,raw);
+    }
+    public static void dataSync(String beginTime,String endTime, String raw) {
 
         SparkSession spark = SparkSession.builder()
                 .appName("vsjxxCaseSync")
@@ -31,11 +36,11 @@ public class vsjxxCaseSync {
         String dataSourceName = "JMLT";//args[0];
         String tableName = "V_SJXX";//args[1];
         String targetTableName = "t_mediation_case_test";
-        String begintime = DateUtil.beginOfDay(DateUtil.lastMonth()).toString("yyyyMMddHHmmss");
-        String raw = "oneday";
+        String beginTimeStr = DateUtil.parse(beginTime).toString("yyyyMMddHHmmss");
+        String endTimeStr = DateUtil.parse(endTime).toString("yyyyMMddHHmmss");
         String other_raw = "";
         //获取来源表数据
-        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName,"GXSJ",begintime,raw);
+        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName,"GXSJ",beginTimeStr,endTimeStr,raw);
         Dataset<Row> rowDataset = rawDF.withColumn("SJRS", rawDF.col("SJRS").cast(DataTypes.LongType));
         //定义数据源对象
         Dataset<V_SJXX> vsjxxDF = rowDataset.as(Encoders.bean(V_SJXX.class));
@@ -44,8 +49,13 @@ public class vsjxxCaseSync {
         Dataset<t_mediation_case> tcDF = vsjxxDF
                 .map(new ConvertToTMediationCase(), Encoders.bean(t_mediation_case.class));
 
-        tcDF.show(10);
-        tcDF.write().mode(SaveMode.Append).jdbc(DataSource.HHM.getUrl(), targetTableName, hhm_mysqlProperties());
+//        tcDF.show(10);
+        tcDF
+                .write()
+                .mode(SaveMode.Append)
+                .jdbc(DataSource.HHM.getUrl(), targetTableName, hhm_mysqlProperties());
+
+        spark.close();
     }
 
     public static class ConvertToTMediationCase implements Function1<V_SJXX, t_mediation_case>, Serializable {

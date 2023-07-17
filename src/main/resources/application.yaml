@@ -1,0 +1,33 @@
+server:
+  port: 8080
+spring:
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+springfox:
+  documentation:
+    enabled: true
+swagger:
+  apply-default-response-messages: false
+  base-package: com.idata.hhmdataconnector.controller
+  base-path: /**
+  contact:
+    email: chnxht@126.com
+    name: 谢浩天
+    url: http://blog.didispace.com
+  description: HHM data connector
+  exclude-path: /error, /ops/**
+  global-response-message:
+    get:
+      - code: 401
+      - code: 500
+        modelRef: ERROR
+    post:
+      - code: 500
+        modelRef: ERROR
+  host: localhost:8080
+  license: Apache License, Version 2.0
+  licenseUrl: https://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfServiceUrl: https://github.com/dyc87112/spring-boot-starter-swagger
+  title: 合肥市矛调数据同步
+  version: 1.4.0.RELEASE

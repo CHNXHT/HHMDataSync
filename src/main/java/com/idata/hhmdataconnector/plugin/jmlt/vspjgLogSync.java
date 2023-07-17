@@ -1,5 +1,6 @@
 package com.idata.hhmdataconnector.plugin.jmlt;
 
+import cn.hutool.core.date.DateUtil;
 import com.idata.hhmdataconnector.DataSource;
 import com.idata.hhmdataconnector.model.hhm.t_mediation_case;
 import com.idata.hhmdataconnector.model.hhm.t_mediation_case_log;
@@ -18,6 +19,11 @@ import static com.idata.hhmdataconnector.utils.connectionUtil.hhm_mysqlPropertie
  */
 public class vspjgLogSync {
     public static void main(String[] args) {
+//        String begintime = DateUtil.beginOfDay(DateUtil.lastMonth()).toString("yyyyMMddHHmmss");
+//        String raw = "raw";
+//        dataSync(begintime,raw);
+    }
+    public static void dataSync(String beginTime,String endTime, String raw) {
         SparkSession spark = SparkSession.builder()
                 .appName("vspjgLogSync")
                 .master("local[20]")
@@ -30,30 +36,35 @@ public class vspjgLogSync {
          */
         String dataSourceName = "JMLT";//args[0];
         String tableName = "V_SPJG";//args[1];
-        String targetTableName = "t_mediation_case_log";
-
+        String targetTableName = "t_mediation_case_log_test";
+        String beginTimeStr = DateUtil.parse(beginTime).toString("yyyyMMddHHmmss");
+        String endTimeStr = DateUtil.parse(endTime).toString("yyyyMMddHHmmss");
         //获取来源表数据
-        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName,"","","");
+        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName,"SPSJ",beginTimeStr,endTimeStr,raw);
         Dataset<Row> rowDataset = rawDF;
 
         //定义数据源对象
         Dataset<V_SPJG> rowDF = rowDataset.as(Encoders.bean(V_SPJG.class));
 
         //关联case表获取id
-        Dataset<t_mediation_case> caseDF = getRawDF(spark, "t_mediation_case", "HHM","","","").as(Encoders.bean(t_mediation_case.class));
+        Dataset<t_mediation_case> caseDF = getRawDF(spark, "t_mediation_case", "HHM","","","","")
+                .as(Encoders.bean(t_mediation_case.class));
 
-        Dataset<Row> joinDF = rowDF.join(caseDF, rowDF.col("LSH").equalTo(caseDF.col("resource_id")), "left");
+        Dataset<Row> joinDF = rowDF
+                .join(caseDF, rowDF.col("LSH").equalTo(caseDF.col("resource_id")), "left");
 
-        joinDF.show(10);
+
         //转化为目标表结构
         Dataset<t_mediation_case_log> tcDF = joinDF
                 .map(new ConvertToTMediationLog(), Encoders.bean(t_mediation_case_log.class));
-
+//        tcDF.show(10);
         tcDF
                 .repartition(20)
                 .write()
                 .mode(SaveMode.Append)
                 .jdbc(DataSource.HHM.getUrl(), targetTableName, hhm_mysqlProperties());
+
+        spark.close();
     }
     public static class ConvertToTMediationLog implements Function1<Row, t_mediation_case_log>, Serializable {
         @Override

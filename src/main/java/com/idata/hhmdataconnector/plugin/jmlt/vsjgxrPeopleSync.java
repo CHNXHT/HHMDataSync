@@ -22,6 +22,11 @@ import static com.idata.hhmdataconnector.utils.connectionUtil.hhm_mysqlPropertie
  */
 public class vsjgxrPeopleSync {
     public static void main(String[] args) {
+//        String begintime = DateUtil.beginOfDay(DateUtil.lastMonth()).toString("yyyyMMddHHmmss");
+//        String raw = "oneday";
+//        dataSync(begintime, raw);
+    }
+    public static void dataSync(String beginTime,String endTime, String raw) {
         SparkSession spark = SparkSession.builder()
                 .appName("vsjgxrPeopleSync")
                 .master("local[20]")
@@ -34,20 +39,22 @@ public class vsjgxrPeopleSync {
          */
         String dataSourceName = "JMLT";//args[0];
         String tableName = "V_SJGXR";//args[1];
-        String targetTableName = "t_mediation_case_people";
-        String begintime = DateUtil.beginOfDay(DateUtil.lastMonth()).toString("yyyyMMddHHmmss");
-        String raw = "oneday";
+        String targetTableName = "t_mediation_case_people_test";
+        String beginTimeStr = DateUtil.parse(beginTime).toString("yyyyMMddHHmmss");
+        String endTimeStr = DateUtil.parse(endTime).toString("yyyyMMddHHmmss");
         String other_raw = "";
         //获取来源表数据
-        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName,"","",raw);
+        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName,"GXSJ",beginTimeStr,endTimeStr,raw);
         Dataset<Row> rowDataset = rawDF;
 
         //定义数据源对象
         Dataset<V_SJGXR> rowDF = rowDataset.as(Encoders.bean(V_SJGXR.class));
         //需要和case ，ZD表join
         //关联case表获取id
-        Dataset<Row> caseDF = getRawDF(spark, "t_mediation_case", "HHM","update_time",begintime,other_raw).select("id","resource_id");
-        Dataset<V_ZD> vzdDF = getRawDF(spark, "V_ZD", dataSourceName,"","",other_raw).as(Encoders.bean(V_ZD.class));
+        Dataset<Row> caseDF = getRawDF(spark, "t_mediation_case", "HHM","","","",other_raw)
+                .select("id","resource_id");
+        Dataset<V_ZD> vzdDF = getRawDF(spark, "V_ZD", dataSourceName,"","","",other_raw)
+                .as(Encoders.bean(V_ZD.class));
 
         Dataset<Row> joinDF = rowDF
                 .join(caseDF, rowDF.col("AJID").equalTo(caseDF.col("resource_id")), "left")
@@ -57,13 +64,14 @@ public class vsjgxrPeopleSync {
         Dataset<t_mediation_case_people> tcDF = joinDF
                 .map(new convertToTMediationPeople(), Encoders.bean(t_mediation_case_people.class));
 
-//        tcDF.where("case_id is not null").show(10);
+//        tcDF.show(10);
 //        tcDF.printSchema();
         tcDF
                 .repartition(20)
                 .write()
                 .mode(SaveMode.Append)
                 .jdbc(DataSource.HHM.getUrl(), targetTableName, hhm_mysqlProperties());
+        spark.close();
     }
 
     public static class convertToTMediationPeople implements Function1<Row, t_mediation_case_people>, Serializable {

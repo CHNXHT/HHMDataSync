@@ -17,10 +17,11 @@ import static com.idata.hhmdataconnector.utils.connectionUtil.hhm_mysqlPropertie
 public class ajblTJWYHParticpantSync {
     public static void main(String[] args) {
         String beginTime = DateUtil.beginOfDay(DateUtil.lastMonth()).toString("yyyy-MM-dd HH:mm:ss");
-        syncByday(beginTime,"raw");
+        String endTime = DateUtil.beginOfDay(DateUtil.lastMonth()).toString("yyyy-MM-dd HH:mm:ss");
+        dataSync(beginTime,endTime,"raw");
     }
 
-    public static void syncByday(String beginTime, String raw) {
+    public static void dataSync(String beginTime,String endTime, String raw) {
         SparkSession spark = SparkSession.builder()
                 .appName("ajblTJWYHParticpantSync")
                 .master("local[20]")
@@ -35,14 +36,16 @@ public class ajblTJWYHParticpantSync {
         String tableName = "t_mediation_case";//args[1];
         String targetTableName = "t_mediation_participant_test";
         String timeField = "SLRQ";
-
-
+        String beginTimeStr = DateUtil.parse(beginTime).toString("yyyy-MM-dd HH:mm:ss");
+        String endTimeStr = DateUtil.parse(endTime).toString("yyyy-MM-dd HH:mm:ss");
         //获取来源表数据
-        Dataset<Row> rawCaseDF = getRawDF(spark, "t_mediation_case_test", "HHM","","","")
+        Dataset<Row> rawCaseDF = getRawDF(spark, "t_mediation_case_test", "HHM","","","","")
                 .select("id","case_num");
-        Dataset<Row> rawAJBLDF = getRawDF(spark, "T_SJKJ_RMTJ_AJBL", "CF",timeField,beginTime,raw)
+
+        Dataset<Row> rawAJBLDF = getRawDF(spark, "T_SJKJ_RMTJ_AJBL", "CF",timeField,beginTimeStr,endTimeStr,raw)
                 .select("SLDW","AJBH");
-        Dataset<Row> rawTJWYHDF = getRawDF(spark, "T_SJKJ_RMTJ_TJWYH", "CF","","","")
+
+        Dataset<Row> rawTJWYHDF = getRawDF(spark, "T_SJKJ_RMTJ_TJWYH", "CF","","","","")
                 .select("XZDQ","TWHMC");
 
         Dataset<Row> AJBL_TJWYH_DF = rawAJBLDF
@@ -55,7 +58,7 @@ public class ajblTJWYHParticpantSync {
                 .join(rawCaseDF, rawCaseDF.col("case_num").equalTo(AJBL_TJWYH_DF.col("AJBH")),"left")
                 .distinct();
 
-        Dataset<Row> organizationDF = getRawDF(spark, "t_organization", "HHM","","","")
+        Dataset<Row> organizationDF = getRawDF(spark, "t_organization", "HHM","","","","")
                 .select("id","county");
 //                .where("town = ''")
 //                .where("county !=''");
@@ -68,13 +71,14 @@ public class ajblTJWYHParticpantSync {
         //转化为目标表结构
         Dataset<t_mediation_participant> tcDF = resDF
                 .map(new convertToTMediationParticipant(), Encoders.bean(t_mediation_participant.class));
-        tcDF.distinct().show(10);
+//        tcDF.distinct().show(10);
         tcDF
                 .distinct()
                 .repartition(20)
                 .write()
                 .mode(SaveMode.Append)
                 .jdbc(DataSource.HHM.getUrl(), targetTableName, hhm_mysqlProperties());
+        spark.close();
     }
 
     //暂时不确定

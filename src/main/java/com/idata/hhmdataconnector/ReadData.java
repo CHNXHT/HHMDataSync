@@ -7,7 +7,7 @@ import org.apache.spark.sql.SparkSession;
 import java.util.Properties;
 
 public class ReadData {
-    public static Dataset<Row> getRawDF(SparkSession sparkSession, String sourceTableName, String sourceName,String timeField,String beginTime,String rawFlag){
+    public static Dataset<Row> getRawDF(SparkSession sparkSession, String sourceTableName, String sourceName,String timeField,String beginTime,String endTime,String rawFlag){
          /*
         获取数据源配置信息参数
          */
@@ -45,14 +45,16 @@ public class ReadData {
                 .jdbc(dataSource.getUrl(), sourceTableName, origin_properties)
                 .toDF();
 
-        if(rawFlag.equals("raw")){
+//        if(rawFlag.equals("raw")){
             //初始化同步原始所有数据
-            return rawDF.where(rawDF.col(timeField).$less(beginTime));
-        }else if(rawFlag.equals("oneday")){
-            //每天同步前一天数据（24-0）
-            return rawDF.where(rawDF.col(timeField).$greater(beginTime));
-        }else {
-            return rawDF;
-        }
+            return rawDF
+                    .where(rawDF.col(timeField).$less(beginTime))
+                    .where(rawDF.col(timeField).$greater(endTime));
+//        }else if(rawFlag.equals("oneday")){
+//            //每天同步前一天数据（24-0）
+//            return rawDF.where(rawDF.col(timeField).$greater(beginTime));
+//        }else {
+//            return rawDF;
+//        }
     }
 }

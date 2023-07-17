@@ -17,21 +17,21 @@ public class RawDataSync {
         String raw = "raw";
         String timeField = "SLRQ";
         String begintime = DateUtil.beginOfDay(DateUtil.lastMonth()).toString("yyyy-MM-dd HH:mm:ss");
-        syncData(dataSourceName,tableName,raw,timeField,begintime);
+        String endtime = DateUtil.beginOfDay(DateUtil.lastMonth()).toString("yyyy-MM-dd HH:mm:ss");
+        syncData(dataSourceName,tableName,raw,timeField,begintime,endtime);
     }
 
-
-    public static void syncData(String dataSourceName, String tableName , String raw, String timeField, String beginTime) throws SQLException {
+    public static void syncData(String dataSourceName, String tableName , String raw, String timeField, String beginTime,String endTime) throws SQLException {
 
         SparkSession spark = SparkSession.builder()
                 .appName("RawDataSync")
                 .master("local[20]")
                 .getOrCreate();
-        System.out.println("==========================================================================================================");
-        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName, timeField, beginTime, raw);
-        rawDF.printSchema();
-        System.out.println("============================================================================================================");
-        rawDF.show();
+//        System.out.println("==========================================================================================================");
+        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName, timeField, beginTime,endTime, raw);
+//        rawDF.printSchema();
+//        System.out.println("============================================================================================================");
+//        rawDF.show();
 //        /*
 //          获取Oracle表的字段结构
 //         */
