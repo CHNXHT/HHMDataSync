@@ -14,7 +14,7 @@ swagger:
   contact:
     email: chnxht@126.com
     name: 谢浩天
-    url: http://blog.didispace.com
+    url: https://github.com/dyc87112/swagger-starter-demo
   description: HHM data connector
   exclude-path: /error, /ops/**
   global-response-message:
@@ -30,4 +30,4 @@ swagger:
   licenseUrl: https://www.apache.org/licenses/LICENSE-2.0.html
   termsOfServiceUrl: https://github.com/dyc87112/spring-boot-starter-swagger
   title: 合肥市矛调数据同步
-  version: 1.4.0.RELEASE
+  version: 1.0.0.RELEASE
