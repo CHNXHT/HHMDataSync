@@ -4,13 +4,15 @@ import cn.hutool.core.date.DateUtil;
 import com.idata.hhmdataconnector.enums.DataSource;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.types.StructType;
+
 import java.sql.SQLException;
 import static com.idata.hhmdataconnector.ReadData.getRawDF;
+import static com.idata.hhmdataconnector.utils.tableUtil.createMySQLTable;
 
 public class RawDataSync {
-
-
 
     public static void main(String[] args) throws SQLException {
         String dataSourceName ="CF";
@@ -30,18 +32,16 @@ public class RawDataSync {
                 .getOrCreate();
 
         Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName, timeField, beginTime,endTime, raw);
-//        rawDF.printSchema();
-//        System.out.println("============================================================================================================");
-//        rawDF.show();
-//        /*
-//          获取Oracle表的字段结构
-//         */
-//        StructType rawTableSchema = rawDF.schema();
-//
-//        /*
-//          创建MySQL表的字段结构
-//         */
-//        createMySQLTable(spark, tableName, rawTableSchema);
+
+        /*
+          获取Oracle表的字段结构
+         */
+        StructType rawTableSchema = rawDF.schema();
+
+        /*
+          创建MySQL表的字段结构
+         */
+        createMySQLTable(spark, tableName, rawTableSchema);
 
         String url = "";
         String name = "";
@@ -55,8 +55,8 @@ public class RawDataSync {
         }
 
         java.util.Properties properties = new java.util.Properties();
-        properties.put("user", name);
-        properties.put("password", psword);
+        properties.put("user", "root");
+        properties.put("password", "idata@2023");
         properties.put("driver","com.mysql.jdbc.Driver");
         /*
           将原始表数据写入MySQL表中
@@ -64,7 +64,7 @@ public class RawDataSync {
         rawDF
                 .repartition(20)
                 .write()
-                .mode("append")
+                .mode(SaveMode.Append)
                 .jdbc(url, tableName, properties);
 
         spark.close();

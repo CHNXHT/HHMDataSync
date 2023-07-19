@@ -19,7 +19,7 @@ public class ReadData {
                 break;
             }
         }
-
+        System.out.println(dataSource+dataSource.getUser()+dataSource.getPassword());
         if (dataSource == null) {
             System.out.println("Unsupported data source: " + sourceName);
             sparkSession.stop();
@@ -34,7 +34,7 @@ public class ReadData {
         String oracleDriver = "oracle.jdbc.driver.OracleDriver";
         String driver = "";
 
-        if(sourceName.equals("HHM")){
+        if(sourceName.equals("HHM")||sourceName.equals("JMLT_ORIGIN")||sourceName.equals("CF_ORIGIN")){
             driver = mysqlDriver;
         }else {
             driver = oracleDriver;
@@ -51,9 +51,6 @@ public class ReadData {
             return rawDF
                     .where(rawDF.col(timeField).$greater(beginTime))
                     .where(rawDF.col(timeField).$less(endTime));
-//        }else if(rawFlag.equals("oneday")){
-//            //每天同步前一天数据（24-0）
-//            return rawDF.where(rawDF.col(timeField).$greater(beginTime));
         }else {
             return rawDF;
         }
