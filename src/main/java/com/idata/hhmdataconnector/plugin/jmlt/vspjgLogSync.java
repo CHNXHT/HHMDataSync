@@ -52,7 +52,7 @@ public class vspjgLogSync {
                 .as(Encoders.bean(t_mediation_case.class));
 
         Dataset<Row> joinDF = rowDF
-                .join(caseDF, rowDF.col("LSH").equalTo(caseDF.col("resource_id")), "left");
+                .join(caseDF, rowDF.col("LSH").equalTo(caseDF.col("resource_id")));
 
 
         //转化为目标表结构

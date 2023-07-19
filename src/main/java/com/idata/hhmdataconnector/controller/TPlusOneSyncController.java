@@ -12,18 +12,18 @@ import com.idata.hhmdataconnector.plugin.jmlt.vspjgLogSync;
 import com.idata.hhmdataconnector.utils.Result;
 import org.springframework.scheduling.annotation.Scheduled;
 
-
 /**
  * @description: some desc
  * @author: xiehaotian
  * @date: 2023/7/17 10:01
  */
-public class TPlusOneSyncController {
-//    @GetMapping("/raw")
-    @Scheduled(cron="0 0 1 * * ?")
-    public Result HHMSyncByDay(){
-        String raw = "oneday";
 
+public class TPlusOneSyncController {
+
+//    @Scheduled(cron="0 0 1 * * ?")
+@Scheduled(cron="0 0 15 * * ?")
+    public Result HHMSyncByDay(){
+        String raw = "raw";
         String begintime = DateUtil.beginOfDay(DateUtil.yesterday().toSqlDate()).toString("yyyy-MM-dd HH:mm:ss");//2023-07-17 00:00:00
         String endtime = DateUtil.today();//2023-07-18
         //hhm case表sync

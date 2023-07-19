@@ -53,7 +53,6 @@ public class tjjlLogSync {
 //        rawDF1.printSchema();
 
         Dataset<Row> rawDF = rawDF0.union(rawDF1);
-        Dataset<Row> rowDataset = rawDF;
 
         //定义数据源对象
 //        Dataset<T_SJKJ_RMTJ_TJJL> rowDF = rowDataset.as(Encoders.bean(T_SJKJ_RMTJ_TJJL.class));
@@ -61,7 +60,7 @@ public class tjjlLogSync {
         //关联case表获取id
         Dataset<t_mediation_case> caseDF = getRawDF(spark, "t_mediation_case_test", "HHM","","","","").as(Encoders.bean(t_mediation_case.class));
 
-        Dataset<Row> joinDF = rowDataset.join(caseDF, rowDataset.col("AJBH").equalTo(caseDF.col("case_num")), "left");
+        Dataset<Row> joinDF = rawDF.join(caseDF, rawDF.col("AJBH").equalTo(caseDF.col("case_num")));
 
         //转化为目标表结构
         Dataset<t_mediation_case_log> tcDF = joinDF
@@ -69,11 +68,13 @@ public class tjjlLogSync {
         tcDF.show();
         //数据入库前删除当前时间段表数据
         deleteTableBeforeInsert(targetTableName, DataSource.HHM.getUrl(),DataSource.HHM.getUser(), DataSource.HHM.getPassword(), beginTimeStr,endTimeStr,"update_time","2");
+
         tcDF
                 .repartition(20)
                 .write()
                 .mode(SaveMode.Append)
                 .jdbc(DataSource.HHM.getUrl(), targetTableName, hhm_mysqlProperties());
+
         spark.close();
     }
     public static class ConvertToTMediationLog implements Function1<Row, t_mediation_case_log>, Serializable {
