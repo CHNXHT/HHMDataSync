@@ -8,6 +8,7 @@ import scala.Function1;
 import java.io.Serializable;
 import static com.idata.hhmdataconnector.ReadData.getRawDF;
 import static com.idata.hhmdataconnector.utils.connectionUtil.hhm_mysqlProperties;
+import static com.idata.hhmdataconnector.utils.tableUtil.deleteTableBeforeInsert;
 
 /**
  * @description: some desc
@@ -23,7 +24,7 @@ public class ajblTJWYHParticpantSync {
 
     public static void dataSync(String beginTime,String endTime, String raw) {
         SparkSession spark = SparkSession.builder()
-                .appName("ajblTJWYHParticpantSync")
+                .appName("ajblTJWYHParticpantSync:"+beginTime)
                 .master("local[20]")
                 .getOrCreate();
         /*
@@ -71,7 +72,9 @@ public class ajblTJWYHParticpantSync {
         //转化为目标表结构
         Dataset<t_mediation_participant> tcDF = resDF
                 .map(new convertToTMediationParticipant(), Encoders.bean(t_mediation_participant.class));
-//        tcDF.distinct().show(10);
+        //数据入库前删除当前时间段表数据
+        deleteTableBeforeInsert(targetTableName, DataSource.HHM.getUrl(),DataSource.HHM.getUser(), DataSource.HHM.getPassword(), beginTimeStr,endTimeStr,"update_time","2");
+        tcDF.show();
         tcDF
                 .distinct()
                 .repartition(20)

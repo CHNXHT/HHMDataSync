@@ -31,3 +31,6 @@ swagger:
   termsOfServiceUrl: https://github.com/dyc87112/spring-boot-starter-swagger
   title: 合肥市矛调数据同步
   version: 1.0.0.RELEASE
+
+
+  log4j.rootCategory: WARN, console

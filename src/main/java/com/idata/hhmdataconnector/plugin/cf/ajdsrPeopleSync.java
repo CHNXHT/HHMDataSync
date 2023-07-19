@@ -11,6 +11,7 @@ import scala.Function1;
 import java.io.Serializable;
 import static com.idata.hhmdataconnector.ReadData.getRawDF;
 import static com.idata.hhmdataconnector.utils.connectionUtil.hhm_mysqlProperties;
+import static com.idata.hhmdataconnector.utils.tableUtil.deleteTableBeforeInsert;
 
 /**
  * todo 数据原来不全，目前无法使用
@@ -24,7 +25,7 @@ public class ajdsrPeopleSync {
     }
     public static void dataSync(String beginTime,String endTime, String raw) {
         SparkSession spark = SparkSession.builder()
-                .appName("ajdsrPeopleSync")
+                .appName("ajdsrPeopleSync:"+beginTime)
                 .master("local[20]")
                 .getOrCreate();
         /*
@@ -39,32 +40,33 @@ public class ajdsrPeopleSync {
         String beginTimeStr = DateUtil.parse(beginTime).toString("yyyy-MM-dd HH:mm:ss");
         String endTimeStr = DateUtil.parse(endTime).toString("yyyy-MM-dd HH:mm:ss");
         //获取来源表数据
-        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName,"","",endTimeStr,raw);
+
+        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName,"",beginTimeStr,endTimeStr,"");
         Dataset<Row> rowDataset = rawDF;
+        //关联case表获取id
+        Dataset<Row> caseDF = getRawDF(spark, "t_mediation_case_test", "HHM","create_time",beginTimeStr,endTimeStr,"raw")
+                .where("case_source = '2'")
+                .select("id","case_num");
 
         //定义数据源对象
         Dataset<T_SJKJ_RMTJ_AJDSR> rowDF = rowDataset.as(Encoders.bean(T_SJKJ_RMTJ_AJDSR.class));
         //需要和case ，ZD表join
-        //关联case表获取id
-        Dataset<Row> caseDF = getRawDF(spark, "t_mediation_case", "HHM","create_time","",endTimeStr,"")
-                .where("case_source = '2'")
-                .select("id","case_num");
-
         Dataset<V_ZD> vzdDF = getRawDF(spark, "V_ZD", "JMLT","","",endTimeStr,"")
                 .as(Encoders.bean(V_ZD.class));
 
-        Dataset<Row> joinDF = rowDF
-                .join(caseDF, rowDF.col("AJBH").equalTo(caseDF.col("case_num")), "left")
+        Dataset<Row> joinDF = caseDF
+                .join(rowDF, rowDF.col("AJBH").equalTo(caseDF.col("case_num")))
                 .join(vzdDF, rowDF.col("MZ").equalTo(vzdDF.col("DM")), "left").where(vzdDF.col("LXJP").equalTo("MZ"));
 
         //转化为目标表结构
         Dataset<t_mediation_case_people> tcDF = joinDF
                 .map(new convertToTMediationPeople(), Encoders.bean(t_mediation_case_people.class));
 
+        //数据入库前删除当前时间段表数据
+        deleteTableBeforeInsert(targetTableName, DataSource.HHM.getUrl(),DataSource.HHM.getUser(), DataSource.HHM.getPassword(), beginTimeStr,endTimeStr,"create_time","1");
+
         tcDF.show(10);
         //执行前先清空case_source=2的数据
-
-
         tcDF
                 .repartition(20)
                 .write()
@@ -79,12 +81,12 @@ public class ajdsrPeopleSync {
             t_mediation_case_people tmediationcasepeople = new t_mediation_case_people();
             //创建时间(使用当前时间)
 //            if (vsjgxr.getAs("CJSJ")!=null){
-                tmediationcasepeople.setCreate_time(DateUtil.date().toString());
+            tmediationcasepeople.setCreate_time(DateUtil.date().toString());
 //            }
 
             //更新时间(使用当前时间)
 //            if (vsjgxr.getAs("GXSJ")!=null) {
-                tmediationcasepeople.setUpdate_time(DateUtil.date().toString());
+            tmediationcasepeople.setUpdate_time(DateUtil.date().toString());
 //            }
             //参与人类型：1 申请人、2 被申请人
             if (vsjgxr.getAs("DSRDW")!=null) {
@@ -110,7 +112,7 @@ public class ajdsrPeopleSync {
             if (vsjgxr.getAs("DSRZJHM")!=null) {
                 tmediationcasepeople.setIdentity_num(vsjgxr.getAs("DSRZJHM").toString());
             }
-            //自然人性别：1 男性、2 女性
+//            //自然人性别：1 男性、2 女性
 //            if (vsjgxr.getAs("GXRXB")!=null) {
 //                tmediationcasepeople.setGender(vsjgxr.getAs("GXRXB").toString().equals("1") ? 1 : 2);
 //            }else{

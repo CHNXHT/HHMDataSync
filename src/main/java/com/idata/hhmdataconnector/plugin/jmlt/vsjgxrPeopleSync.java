@@ -14,6 +14,7 @@ import java.io.Serializable;
 
 import static com.idata.hhmdataconnector.ReadData.getRawDF;
 import static com.idata.hhmdataconnector.utils.connectionUtil.hhm_mysqlProperties;
+import static com.idata.hhmdataconnector.utils.tableUtil.deleteTableBeforeInsert;
 
 /**
  * @description: some desc
@@ -28,7 +29,7 @@ public class vsjgxrPeopleSync {
     }
     public static void dataSync(String beginTime,String endTime, String raw) {
         SparkSession spark = SparkSession.builder()
-                .appName("vsjgxrPeopleSync")
+                .appName("vsjgxrPeopleSync:"+beginTime)
                 .master("local[20]")
                 .getOrCreate();
         /*
@@ -51,7 +52,7 @@ public class vsjgxrPeopleSync {
         Dataset<V_SJGXR> rowDF = rowDataset.as(Encoders.bean(V_SJGXR.class));
         //需要和case ，ZD表join
         //关联case表获取id
-        Dataset<Row> caseDF = getRawDF(spark, "t_mediation_case", "HHM","","","",other_raw)
+        Dataset<Row> caseDF = getRawDF(spark, "t_mediation_case_test", "HHM","","","",other_raw)
                 .select("id","resource_id");
         Dataset<V_ZD> vzdDF = getRawDF(spark, "V_ZD", dataSourceName,"","","",other_raw)
                 .as(Encoders.bean(V_ZD.class));
@@ -64,8 +65,10 @@ public class vsjgxrPeopleSync {
         Dataset<t_mediation_case_people> tcDF = joinDF
                 .map(new convertToTMediationPeople(), Encoders.bean(t_mediation_case_people.class));
 
-//        tcDF.show(10);
-//        tcDF.printSchema();
+        //数据入库前删除当前时间段表数据
+        deleteTableBeforeInsert(targetTableName, DataSource.HHM.getUrl(),DataSource.HHM.getUser(), DataSource.HHM.getPassword(), beginTimeStr,endTimeStr,"create_time","1");
+
+        tcDF.show(10);
         tcDF
                 .repartition(20)
                 .write()
@@ -82,10 +85,9 @@ public class vsjgxrPeopleSync {
             if (vsjgxr.getAs("CJSJ")!=null){
                 tmediationcasepeople.setCreate_time(DateUtils.strToTsSFM(vsjgxr.getAs("CJSJ").toString()));
             }
-
-//            //更新时间
+            //更新时间
             if (vsjgxr.getAs("GXSJ")!=null) {
-                tmediationcasepeople.setUpdate_time(DateUtils.strToTsSFM(vsjgxr.getAs("GXSJ").toString()));
+                tmediationcasepeople.setUpdate_time(DateUtil.now());
             }
             //参与人类型：1 申请人、2 被申请人
             if (vsjgxr.getAs("RYLB")!=null) {

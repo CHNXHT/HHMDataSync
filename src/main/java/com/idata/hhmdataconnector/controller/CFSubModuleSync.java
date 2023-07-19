@@ -4,6 +4,7 @@ import com.idata.hhmdataconnector.plugin.cf.ajblCaseSync;
 import com.idata.hhmdataconnector.plugin.cf.ajblTJWYHParticpantSync;
 import com.idata.hhmdataconnector.plugin.cf.ajdsrPeopleSync;
 import com.idata.hhmdataconnector.plugin.cf.tjjlLogSync;
+import com.idata.hhmdataconnector.utils.Result;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -23,41 +24,45 @@ public class CFSubModuleSync {
     //数据同步前先删除msyql数据时间内数据
 
     //case
-    @ApiOperation(value="促法-CASE")
+    @ApiOperation(value="促法-CASE",notes="促法 T_SJKJ_RMTJ_AJBL 表数据同步到 t_mediation_case 表")
     @GetMapping("/cfCase")
-    public void cfCase(
-            @ApiParam(name = "beginTime", value = "提取开始时间",required=true)String beginTime,
-            @ApiParam(name = "endTime", value = "提取结束时间",required=true)String endTime,
-            @ApiParam(name = "raw", value = "提取类型",required=true)String raw){
+    public Result cfCase(
+            @ApiParam(value = "提取开始时间",required=true)String beginTime,
+            @ApiParam(value = "提取结束时间",required=true)String endTime,
+            @ApiParam(value = "提取类型",required=true,defaultValue = "raw")String raw){
         ajblCaseSync.dataSync(beginTime,endTime,raw);
+        return Result.SUCCESS(beginTime+"日："+"促法-CASE数据同步成功");
     }
     //people
-    @ApiOperation("促法-PEOPLE")
+    @ApiOperation(value = "促法-PEOPLE",notes="促法 T_SJKJ_RMTJ_AJDSR 表数据同步到 t_mediation_case_people 表")
     @GetMapping("/cfPeople")
-    public void cfPeople(
-            @ApiParam(name = "beginTime", value = "提取开始时间",required=true)String beginTime,
-            @ApiParam(name = "endTime", value = "提取结束时间",required=true)String endTime,
-            @ApiParam(name = "raw", value = "提取类型",required=true)String raw){
+    public Result cfPeople(
+            @ApiParam(value = "提取开始时间",required=true)String beginTime,
+            @ApiParam(value = "提取结束时间",required=true)String endTime,
+            @ApiParam(value = "提取类型",required=true,defaultValue = "raw")String raw){
         ajdsrPeopleSync.dataSync(beginTime,endTime,raw);
+        return Result.SUCCESS(beginTime+"日："+"促法-CASE数据同步成功");
     }
 
     //people
-    @ApiOperation("促法-Log")
+    @ApiOperation(value = "促法-Log",notes="促法 T_SJKJ_RMTJ_TJJL 表数据同步到 t_mediation_case_log 表")
     @GetMapping("/cfLog")
-    public void cfLog(
-            @ApiParam(name = "beginTime", value = "提取开始时间",required=true)String beginTime,
-            @ApiParam(name = "endTime", value = "提取结束时间",required=true)String endTime,
-            @ApiParam(name = "raw", value = "提取类型",required=true)String raw){
+    public Result cfLog(
+            @ApiParam(value = "提取开始时间",required=true)String beginTime,
+            @ApiParam(value = "提取结束时间",required=true)String endTime,
+            @ApiParam(value = "提取类型",required=true,defaultValue = "raw")String raw){
         tjjlLogSync.dataSync(beginTime,endTime,raw);
+        return Result.SUCCESS(beginTime+"日："+"促法-LOG数据同步成功");
     }
     //people
-    @ApiOperation("促法-Particpant")
+    @ApiOperation(value = "促法-Particpant",notes="促法 T_SJKJ_RMTJ_TJWYH 表数据同步到 t_mediation_participant 表")
     @GetMapping("/cfParticpant")
-    public void cfParticpant(
-            @ApiParam(name = "beginTime", value = "提取开始时间",required=true)String beginTime,
-            @ApiParam(name = "endTime", value = "提取结束时间",required=true)String endTime,
-            @ApiParam(name = "raw", value = "提取类型",required=true)String raw){
+    public Result cfParticpant(
+            @ApiParam(value = "提取开始时间",required=true)String beginTime,
+            @ApiParam(value = "提取结束时间",required=true)String endTime,
+            @ApiParam(value = "提取类型",required=true,defaultValue = "raw")String raw){
         ajblTJWYHParticpantSync.dataSync(beginTime,endTime,raw);
+        return Result.SUCCESS(beginTime+"日："+"促法-Particpant数据同步成功");
     }
 
 }

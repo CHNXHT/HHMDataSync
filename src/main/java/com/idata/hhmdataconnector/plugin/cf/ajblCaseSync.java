@@ -1,18 +1,15 @@
 package com.idata.hhmdataconnector.plugin.cf;
 
-import cn.hutool.core.date.DateTime;
 import cn.hutool.core.date.DateUtil;
 import com.idata.hhmdataconnector.DataSource;
-import com.idata.hhmdataconnector.model.cf.T_SJKJ_RMTJ_AJBL;
 import com.idata.hhmdataconnector.model.hhm.t_mediation_case;
 import org.apache.spark.sql.*;
 import org.apache.spark.sql.types.DataTypes;
 import scala.Function1;
 import java.io.Serializable;
-import java.util.Date;
-
 import static com.idata.hhmdataconnector.ReadData.getRawDF;
 import static com.idata.hhmdataconnector.utils.connectionUtil.hhm_mysqlProperties;
+import static com.idata.hhmdataconnector.utils.tableUtil.deleteTableBeforeInsert;
 
 /**
  * @description: some desc
@@ -21,17 +18,20 @@ import static com.idata.hhmdataconnector.utils.connectionUtil.hhm_mysqlPropertie
  */
 public class ajblCaseSync {
     public static void main(String[] args) {
-//        String begintime = DateUtil.beginOfDay(DateUtil.lastMonth()).toString("yyyy-MM-dd HH:mm:ss");
+//        String beginTime = "2018-01-01";
+//        String endtime = DateUtil.beginOfDay(DateUtil.yesterday()).toString("yyyy-MM-dd HH:mm:ss");
 //        String raw = "oneday";
 //
-//        System.out.println(begintime);
-//        dataSync( begintime,raw);
+////        System.out.println(begintime);
+//        dataSync( beginTime,endtime,raw);
+        String beginTimeStr = DateUtil.parse("2017-01-01").toString("yyyy-MM-dd HH:mm:ss");
+        System.out.println(beginTimeStr);
     }
 
     public static void dataSync(String beginTime,String endTime, String raw) {
         SparkSession spark = SparkSession.builder()
-                .appName("ajblCaseSync")
-                .master("local[16]")
+                .appName("ajblCaseSync:"+beginTime)
+                .master("local[20]")
                 .getOrCreate();
 
         /*
@@ -45,9 +45,14 @@ public class ajblCaseSync {
         String targetTableName = "t_mediation_case_test";
         String timeField = "SLRQ";
 
+//        System.out.println(beginTime+endTime+raw);
+
         String beginTimeStr = DateUtil.parse(beginTime).toString("yyyy-MM-dd HH:mm:ss");
         String endTimeStr = DateUtil.parse(endTime).toString("yyyy-MM-dd HH:mm:ss");
         Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName, timeField, beginTimeStr,endTimeStr, raw);
+
+        //数据入库前删除当前时间段表数据
+        deleteTableBeforeInsert(targetTableName, DataSource.HHM.getUrl(),DataSource.HHM.getUser(), DataSource.HHM.getPassword(), beginTimeStr,endTimeStr,"create_time","2");
 
         //获取来源表数据
         if(!beginTimeStr.equals("raw")){
@@ -55,15 +60,26 @@ public class ajblCaseSync {
         }
 //        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName).filter();
         Dataset<Row> rowDataset = rawDF.withColumn("SAJE", rawDF.col("SAJE").cast(DataTypes.LongType));
-        ;
+        //todo code SLDAW->T_SJKJ_RMTJ_TJWYH(XZDQ)->t_organization(province,city,county)
+        Dataset<Row> TJWYHDF = getRawDF(spark, "T_SJKJ_RMTJ_TJWYH", dataSourceName, timeField, beginTimeStr,endTimeStr, "")
+                .select("TWHMC","XZDQ");
+
+        Dataset<Row> ORGDF = getRawDF(spark, "t_organization", "HHM", timeField, beginTimeStr,endTimeStr, "")
+                .select("province","city","county")
+                .where("town = ''");
+
+
+        Dataset<Row> raw_tjwyhDF = rawDF.join(TJWYHDF, rawDF.col("SLDW").equalTo(TJWYHDF.col("TWHMC")), "left");
         //定义数据源对象
-        Dataset<T_SJKJ_RMTJ_AJBL> rowDF = rowDataset.as(Encoders.bean(T_SJKJ_RMTJ_AJBL.class));
+        Dataset<Row> rowDF = raw_tjwyhDF.join(ORGDF, ORGDF.col("county").contains(raw_tjwyhDF.col("XZDQ")));
+//                .as(Encoders.bean(T_SJKJ_RMTJ_AJBL.class));
 
         //转化为目标表结构
         Dataset<t_mediation_case> tcDF = rowDF
                 .map(new ConvertToTMediationCase(), Encoders.bean(t_mediation_case.class));
-//        tcDF.show(10);
+        tcDF.show();
         tcDF
+                .repartition(20)
                 .write()
                 .mode(SaveMode.Append)
                 .jdbc(DataSource.HHM.getUrl(), targetTableName, hhm_mysqlProperties());
@@ -71,37 +87,69 @@ public class ajblCaseSync {
         spark.close();
     }
 
-    public static class ConvertToTMediationCase implements Function1<T_SJKJ_RMTJ_AJBL, t_mediation_case>, Serializable {
+    public static class ConvertToTMediationCase implements Function1<Row, t_mediation_case>, Serializable {
         @Override
-        public t_mediation_case apply(T_SJKJ_RMTJ_AJBL ajbl) {
+        public t_mediation_case apply(Row ajbl) {
             t_mediation_case tMediationCase = new t_mediation_case();
-            tMediationCase.setResource_id(ajbl.getBH());
+            if (ajbl.getAs("BH")!=null){
+                tMediationCase.setResource_id(ajbl.getAs("BH").toString());
+            }
+
             //创建时间
-            tMediationCase.setCreate_time(ajbl.getSLRQ());
+            if(ajbl.getAs("SLRQ")!=null){
+                tMediationCase.setCreate_time(ajbl.getAs("SLRQ").toString());
+            }
             //修改时间
 //            tMediationCase.setUpdate_time(DateUtils.strToTsSFM(ajbl.getGXSJ()));
             //纠纷编号
-            tMediationCase.setCase_num(ajbl.getAJBH());
+            if(ajbl.getAs("AJBH")!=null){
+                tMediationCase.setCase_num(ajbl.getAs("AJBH").toString());
+            }
+
             //纠纷描述
-            tMediationCase.setCase_description(ajbl.getJFJJ());
+            if(ajbl.getAs("JFJJ")!=null){
+                tMediationCase.setCase_description(ajbl.getAs("JFJJ").toString());
+            }
+
             //纠纷诉求
 //            tMediationCase.setRequest("-");
-            //调解方式
+            //调解方式(第三方)
             tMediationCase.setMethod(2);
             //证据材料描述
 //            tMediationCase.setEvidence_description("-");
             //纠纷类型
-            if (ajbl.getJFLX() != null) {
-                tMediationCase.setCase_type(ajbl.getJFLX());
+            if (ajbl.getAs("JFLX") != null) {
+                tMediationCase.setCase_type(ajbl.getAs("JFLX").toString());
             }
-            //纠纷发生地
-            tMediationCase.setPlace_detail(ajbl.getXZQH());
+            //纠纷发生地 todo code
+            if (ajbl.getAs("XZQH")!=null){
+                tMediationCase.setPlace_detail(ajbl.getAs("XZQH").toString());
+            }
+
+            //todo code SLDAW->T_SJKJ_RMTJ_TJWYH(XZDQ)->t_organization(province,city,county)
+            if ( ajbl.getAs("province")!=null && ajbl.getAs("city")!=null && ajbl.getAs("county")!=null){
+                String placeCode= ajbl.getAs("province").toString()+","+ajbl.getAs("city").toString()+","+ajbl.getAs("county").toString();
+                tMediationCase.setPlace_code(placeCode);
+            }
+            //todo 状态（成功3，结束4）
+            if(ajbl.getAs("TJJG")!=null && ajbl.getAs("TJJG").toString().equals("成功")){
+                tMediationCase.setStatus(3);
+            }else if(ajbl.getAs("TJJG")!=null && ajbl.getAs("TJJG").toString().equals("不成功")){
+                tMediationCase.setStatus(4);
+            }
+
             //纠纷发生日期
-            tMediationCase.setOccurrence_time(ajbl.getFSRQ());
+            if(ajbl.getAs("FSRQ")!=null){
+                tMediationCase.setOccurrence_time(ajbl.getAs("FSRQ").toString());
+            }
+
             //创建人ID
             tMediationCase.setCreate_user_id(10101L);
             //创建人姓名
-            tMediationCase.setCreate_user_name(ajbl.getTJY());
+            if(ajbl.getAs("TJY")!=null){
+                tMediationCase.setCreate_user_name(ajbl.getAs("TJY").toString());
+            }
+
             //文书状态
             tMediationCase.setDoc_status(0);
             //调解结果
@@ -137,7 +185,6 @@ public class ajblCaseSync {
 //            }
             //纠纷来源 1为警民联调
             tMediationCase.setCase_source(2);
-
             // 设置其他属性
             return tMediationCase;
         }

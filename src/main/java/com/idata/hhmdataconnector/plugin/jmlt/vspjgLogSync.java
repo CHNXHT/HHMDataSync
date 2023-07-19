@@ -11,6 +11,7 @@ import scala.Function1;
 import java.io.Serializable;
 import static com.idata.hhmdataconnector.ReadData.getRawDF;
 import static com.idata.hhmdataconnector.utils.connectionUtil.hhm_mysqlProperties;
+import static com.idata.hhmdataconnector.utils.tableUtil.deleteTableBeforeInsert;
 
 /**
  * @description: some desc
@@ -25,7 +26,7 @@ public class vspjgLogSync {
     }
     public static void dataSync(String beginTime,String endTime, String raw) {
         SparkSession spark = SparkSession.builder()
-                .appName("vspjgLogSync")
+                .appName("vspjgLogSync:"+beginTime)
                 .master("local[20]")
                 .getOrCreate();
         /*
@@ -57,7 +58,9 @@ public class vspjgLogSync {
         //转化为目标表结构
         Dataset<t_mediation_case_log> tcDF = joinDF
                 .map(new ConvertToTMediationLog(), Encoders.bean(t_mediation_case_log.class));
-//        tcDF.show(10);
+        tcDF.show(10);
+        //数据入库前删除当前时间段表数据
+        deleteTableBeforeInsert(targetTableName, DataSource.HHM.getUrl(),DataSource.HHM.getUser(), DataSource.HHM.getPassword(), beginTimeStr,endTimeStr,"update_time","2");
         tcDF
                 .repartition(20)
                 .write()

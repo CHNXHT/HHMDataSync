@@ -8,6 +8,7 @@ import scala.Function1;
 import java.io.Serializable;
 import static com.idata.hhmdataconnector.ReadData.getRawDF;
 import static com.idata.hhmdataconnector.utils.connectionUtil.hhm_mysqlProperties;
+import static com.idata.hhmdataconnector.utils.tableUtil.deleteTableBeforeInsert;
 
 /**
  * @description: some desc
@@ -22,7 +23,7 @@ public class caseParticipantSync {
     }
     public static void dataSync(String beginTime,String endTime, String raw) {
         SparkSession spark = SparkSession.builder()
-                .appName("caseParticipantSync")
+                .appName("caseParticipantSync:"+beginTime)
                 .master("local[20]")
                 .getOrCreate();
         /*
@@ -44,7 +45,9 @@ public class caseParticipantSync {
 //                .where(rawDF.col("create_time").$greater(beginTime))
                 .map(new convertToTMediationParticipant(), Encoders.bean(t_mediation_participant.class));
 
-//        tcDF.distinct().show(10);
+        //数据入库前删除当前时间段表数据
+//        deleteTableBeforeInsert(targetTableName, DataSource.HHM.getUrl(),DataSource.HHM.getUser(), DataSource.HHM.getPassword(), beginTimeStr,endTimeStr,"update_time","2");
+        tcDF.distinct().show(10);
         tcDF
                 .distinct()
                 .repartition(20)
@@ -68,7 +71,7 @@ public class caseParticipantSync {
             //创建日期
             tmediationcasepeople.setCreate_time(DateUtil.date().toString());
             //更新日期
-            tmediationcasepeople.setUpdate_time(DateUtil.date().toString());
+            tmediationcasepeople.setUpdate_time(DateUtil.now());
             //纠纷机构id 766为肥东
             tmediationcasepeople.setOrg_id(766L);
             //案件流转参与者id 即能看到该纠纷数据的用户id 12310（叶秀）
