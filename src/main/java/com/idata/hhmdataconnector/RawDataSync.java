@@ -25,7 +25,7 @@ public class RawDataSync {
     public static void syncData(String dataSourceName, String tableName , String raw, String timeField, String beginTime,String endTime) throws SQLException {
 
         SparkSession spark = SparkSession.builder()
-                .appName("RawDataSync")
+                .appName("RawDataSync"+tableName)
                 .master("local[20]")
                 .getOrCreate();
 
