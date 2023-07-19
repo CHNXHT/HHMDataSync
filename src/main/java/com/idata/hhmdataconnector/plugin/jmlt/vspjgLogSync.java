@@ -1,7 +1,7 @@
 package com.idata.hhmdataconnector.plugin.jmlt;
 
 import cn.hutool.core.date.DateUtil;
-import com.idata.hhmdataconnector.DataSource;
+import com.idata.hhmdataconnector.enums.DataSource;
 import com.idata.hhmdataconnector.model.hhm.t_mediation_case;
 import com.idata.hhmdataconnector.model.hhm.t_mediation_case_log;
 import com.idata.hhmdataconnector.model.jmlt.V_SPJG;
@@ -60,7 +60,7 @@ public class vspjgLogSync {
                 .map(new ConvertToTMediationLog(), Encoders.bean(t_mediation_case_log.class));
         tcDF.show(10);
         //数据入库前删除当前时间段表数据
-        deleteTableBeforeInsert(targetTableName, DataSource.HHM.getUrl(),DataSource.HHM.getUser(), DataSource.HHM.getPassword(), beginTimeStr,endTimeStr,"update_time","2");
+        deleteTableBeforeInsert(targetTableName, DataSource.HHM.getUrl(), DataSource.HHM.getUser(), DataSource.HHM.getPassword(), beginTimeStr,endTimeStr,"update_time","2");
         tcDF
                 .repartition(20)
                 .write()

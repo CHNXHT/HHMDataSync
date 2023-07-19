@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @author: xiehaotian
  * @date: 2023/7/17 10:00
  */
-@Api(tags = "一次同步",description = "一次数据同步接口")
+@Api(tags = "ETL数据一次同步",description = "一次数据同步接口")
 @RestController
 @RequestMapping("hhm/sync")
 @Component

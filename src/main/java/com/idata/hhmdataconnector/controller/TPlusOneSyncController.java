@@ -11,17 +11,18 @@ import com.idata.hhmdataconnector.plugin.jmlt.vsjxxCaseSync;
 import com.idata.hhmdataconnector.plugin.jmlt.vspjgLogSync;
 import com.idata.hhmdataconnector.utils.Result;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
 
 /**
  * @description: some desc
  * @author: xiehaotian
  * @date: 2023/7/17 10:01
  */
-
+@Component
 public class TPlusOneSyncController {
 
-//    @Scheduled(cron="0 0 1 * * ?")
-@Scheduled(cron="0 0 15 * * ?")
+    @Scheduled(cron="0 0 1 * * ?")
+//    @Scheduled(cron="0 10 15 * * ?")
     public Result HHMSyncByDay(){
         String raw = "raw";
         String begintime = DateUtil.beginOfDay(DateUtil.yesterday().toSqlDate()).toString("yyyy-MM-dd HH:mm:ss");//2023-07-17 00:00:00
@@ -49,6 +50,6 @@ public class TPlusOneSyncController {
         String begintime = DateUtil.beginOfDay(DateUtil.yesterday().toSqlDate()).toString("yyyy-MM-dd HH:mm:ss");
         String endtime = DateUtil.endOfDay(DateUtil.yesterday().toSqlDate()).toString("yyyy-MM-dd HH:mm:ss");
         System.out.println(begintime+"============"+endtime+"=="+DateUtil.parse(DateUtil.today()).toString("yyyy-MM-dd HH:mm:ss"));
-
     }
+
 }

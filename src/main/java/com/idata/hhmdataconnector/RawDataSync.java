@@ -1,16 +1,17 @@
 package com.idata.hhmdataconnector;
 
 import cn.hutool.core.date.DateUtil;
+import com.idata.hhmdataconnector.enums.DataSource;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.types.StructType;
 import java.sql.SQLException;
 import static com.idata.hhmdataconnector.ReadData.getRawDF;
-import static com.idata.hhmdataconnector.utils.connectionUtil.hhm_mysqlProperties;
-import static com.idata.hhmdataconnector.utils.tableUtil.createMySQLTable;
 
 public class RawDataSync {
+
+
+
     public static void main(String[] args) throws SQLException {
         String dataSourceName ="CF";
         String tableName ="T_SJKJ_RMTJ_AJBL";
@@ -27,7 +28,7 @@ public class RawDataSync {
                 .appName("RawDataSync")
                 .master("local[20]")
                 .getOrCreate();
-//        System.out.println("==========================================================================================================");
+
         Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName, timeField, beginTime,endTime, raw);
 //        rawDF.printSchema();
 //        System.out.println("============================================================================================================");
@@ -42,6 +43,21 @@ public class RawDataSync {
 //         */
 //        createMySQLTable(spark, tableName, rawTableSchema);
 
+        String url = "";
+        String name = "";
+        String psword = "";
+        for (DataSource dataSource : DataSource.values()) {
+            if (dataSource.name().equalsIgnoreCase(dataSourceName)) {
+                url =  dataSource.getUrl();
+                name = dataSource.getUser();
+                psword = dataSource.getPassword();
+            }
+        }
+
+        java.util.Properties properties = new java.util.Properties();
+        properties.put("user", name);
+        properties.put("password", psword);
+        properties.put("driver","com.mysql.jdbc.Driver");
         /*
           将原始表数据写入MySQL表中
          */
@@ -49,9 +65,8 @@ public class RawDataSync {
                 .repartition(20)
                 .write()
                 .mode("append")
-                .jdbc(DataSource.HHM.getUrl(), tableName, hhm_mysqlProperties());
+                .jdbc(url, tableName, properties);
 
         spark.close();
     }
-
 }

@@ -1,4 +1,4 @@
-package com.idata.hhmdataconnector;
+package com.idata.hhmdataconnector.enums;
 
 public enum DataSource {
     //警民联调
@@ -6,8 +6,11 @@ public enum DataSource {
     //促法
     CF("jdbc:oracle:thin:@59.203.26.25:1521:ORCL","sjkjdb","sjkj65334801"),
     //合和码
-    HHM( "jdbc:mysql://172.16.16.32:3306/contradiction?useSSL=false", "root", "idata@2023");
-
+    HHM( "jdbc:mysql://172.16.16.32:3306/contradiction?useSSL=false", "root", "idata@2023"),
+    //警民联调原始数据
+    JMLT_ORIGIN( "jdbc:mysql://172.16.16.32:3306/JMLT_ORIGIN?useSSL=false", "root", "idata@2023"),
+    //促法原始数据
+    CF_ORIGIN( "jdbc:mysql://172.16.16.32:3306/CF_ORIGIN?useSSL=false", "root", "idata@2023");
     private String url;
     private String user;
     private String password;

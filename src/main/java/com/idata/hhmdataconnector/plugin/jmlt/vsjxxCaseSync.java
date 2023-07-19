@@ -1,7 +1,7 @@
 package com.idata.hhmdataconnector.plugin.jmlt;
 
 import cn.hutool.core.date.DateUtil;
-import com.idata.hhmdataconnector.DataSource;
+import com.idata.hhmdataconnector.enums.DataSource;
 import com.idata.hhmdataconnector.model.hhm.t_mediation_case;
 import com.idata.hhmdataconnector.utils.DateUtils;
 import org.apache.spark.sql.*;
@@ -39,7 +39,7 @@ public class vsjxxCaseSync {
         String endTimeStr = DateUtil.parse(endTime).toString("yyyyMMddHHmmss");
         String other_raw = "";
         //获取来源表数据
-        System.out.println("=====================start=====================");
+//        System.out.println("=====================start=====================");
         Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName,"GXSJ",beginTimeStr,endTimeStr,raw);
 
 //        rawDF.show();

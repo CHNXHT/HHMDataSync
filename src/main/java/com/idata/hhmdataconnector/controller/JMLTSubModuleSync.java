@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @author: xiehaotian
  * @date: 2023/7/17 11:04
  */
-@Api(tags = "警民联调",description = "提供警民联调数据同步接口")
+@Api(tags = "警民联调ETL",description = "提供警民联调数据同步接口")
 @RestController
 @RequestMapping("hhm/subsync")
 @Component

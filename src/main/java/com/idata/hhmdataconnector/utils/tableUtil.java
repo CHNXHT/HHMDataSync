@@ -1,7 +1,7 @@
 package com.idata.hhmdataconnector.utils;
 
 import cn.hutool.core.date.DateUtil;
-import com.idata.hhmdataconnector.DataSource;
+import com.idata.hhmdataconnector.enums.DataSource;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.*;
 import java.sql.Connection;

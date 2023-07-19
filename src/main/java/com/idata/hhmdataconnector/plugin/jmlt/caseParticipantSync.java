@@ -1,14 +1,13 @@
 package com.idata.hhmdataconnector.plugin.jmlt;
 
 import cn.hutool.core.date.DateUtil;
-import com.idata.hhmdataconnector.DataSource;
+import com.idata.hhmdataconnector.enums.DataSource;
 import com.idata.hhmdataconnector.model.hhm.t_mediation_participant;
 import org.apache.spark.sql.*;
 import scala.Function1;
 import java.io.Serializable;
 import static com.idata.hhmdataconnector.ReadData.getRawDF;
 import static com.idata.hhmdataconnector.utils.connectionUtil.hhm_mysqlProperties;
-import static com.idata.hhmdataconnector.utils.tableUtil.deleteTableBeforeInsert;
 
 /**
  * @description: some desc

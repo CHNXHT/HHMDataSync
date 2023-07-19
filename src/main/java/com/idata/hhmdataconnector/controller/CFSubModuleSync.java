@@ -8,6 +8,7 @@ import com.idata.hhmdataconnector.utils.Result;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
+import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,9 +18,10 @@ import org.springframework.web.bind.annotation.RestController;
  * @author: xiehaotian
  * @date: 2023/7/17 11:04
  */
-@Api(tags = "促法",description = "提供促法数据同步接口")
+@Api(tags = "促法ETL",description = "提供促法数据同步接口")
 @RestController
 @RequestMapping("hhm/subsync")
+@Component
 public class CFSubModuleSync {
     //数据同步前先删除msyql数据时间内数据
 
