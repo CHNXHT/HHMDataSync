@@ -69,4 +69,49 @@ public class RawDataSync {
 
         spark.close();
     }
+    public static void MultisyncData(String dataSourceName,String targetDataSourceName, String tableName , String raw, String timeField, String beginTime,String endTime) throws SQLException {
+
+        SparkSession spark = SparkSession.builder()
+                .appName("RawDataSync"+tableName)
+                .master("local[20]")
+                .getOrCreate();
+        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName, timeField, beginTime,endTime, raw);
+        rawDF.show(10);
+//        /*
+//          获取Oracle表的字段结构
+//         */
+//        StructType rawTableSchema = rawDF.schema();
+//
+//        /*
+//          创建MySQL表的字段结构
+//         */
+//        createMySQLTable(spark, tableName, rawTableSchema);
+
+        String url = "";
+        String name = "";
+        String psword = "";
+        for (DataSource dataSource : DataSource.values()) {
+            if (dataSource.name().equalsIgnoreCase(targetDataSourceName)) {
+                url =  dataSource.getUrl();
+                name = dataSource.getUser();
+                psword = dataSource.getPassword();
+            }
+        }
+
+        java.util.Properties properties = new java.util.Properties();
+        properties.put("user", "root");
+        properties.put("password", "idata@2023");
+        properties.put("driver","com.mysql.jdbc.Driver");
+        /*
+          将原始表数据写入MySQL表中
+         */
+        System.out.println(url);
+        rawDF
+                .repartition(20)
+                .write()
+                .mode(SaveMode.Append)
+                .jdbc(url, tableName, properties);
+
+        spark.close();
+    }
 }

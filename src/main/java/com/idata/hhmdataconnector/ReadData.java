@@ -39,7 +39,7 @@ public class ReadData {
         }else {
             driver = oracleDriver;
         }
-
+        System.out.println(dataSource.getUrl()+sourceTableName+dataSource.getUser()+dataSource.getPassword());
         Dataset<Row> rawDF = sparkSession
                 .read()
                 .option("driver",driver)

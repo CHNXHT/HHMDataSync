@@ -1,9 +1,9 @@
 package com.idata.hhmdataconnector.controller;
 
 import cn.hutool.core.date.DateUtil;
-import com.idata.hhmdataconnector.DatabaseTable;
 import com.idata.hhmdataconnector.RawDataSync;
 import com.idata.hhmdataconnector.enums.DataSource;
+import com.idata.hhmdataconnector.enums.DatabaseTable;
 import com.idata.hhmdataconnector.utils.Result;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -36,12 +36,13 @@ public class CFOriginSyncByDay {
     public Result cft_sjkj_rmtj_ajbl() throws SQLException {
         //警民联调 V_SJGXR
         String databasename = DatabaseTable.CFT_SJKJ_RMTJ_AJBL.getDatabasename();
+        String targetdatabasename = DatabaseTable.CFT_SJKJ_RMTJ_AJBL.getTargetdatabasename();
         String tablename = DatabaseTable.CFT_SJKJ_RMTJ_AJBL.getTablename();
         String beginTimeStr = DateUtil.parse(begintime).toString("yyyy-MM-dd HH:mm:ss");
         String endTimeStr = DateUtil.parse(endtime).toString("yyyy-MM-dd HH:mm:ss");
         //数据入库前删除当前时间段表数据
-        deleteTableBeforeInsert(tablename, url,databasename, pasword, beginTimeStr,endTimeStr,"SLSJ","1");
-        RawDataSync.syncData(databasename,tablename,raw,"SLSJ",begintime,endtime);
+        deleteTableBeforeInsert(tablename, url,targetdatabasename, pasword, beginTimeStr,endTimeStr,"SLSJ","1");
+        RawDataSync.MultisyncData(databasename,targetdatabasename,tablename,raw,"SLSJ",begintime,endtime);
         return Result.SUCCESS(begintime+"日："+"T_SJKJ_RMTJ_AJBL 数据同步成功");
     }
 
@@ -65,11 +66,12 @@ public class CFOriginSyncByDay {
         //警民联调 V_SJLX
         String databasename = DatabaseTable.CFT_SJKJ_RMTJ_DCJL.getDatabasename();
         String tablename = DatabaseTable.CFT_SJKJ_RMTJ_DCJL.getTablename();
+        String targetdatabasename = DatabaseTable.CFT_SJKJ_RMTJ_DCJL.getTargetdatabasename();
         String beginTimeStr = DateUtil.parse(begintime).toString("yyyy-MM-dd");
         String endTimeStr = DateUtil.parse(endtime).toString("yyyy-MM-dd");
         //数据入库前删除当前时间段表数据
-        deleteTableBeforeInsert(tablename, url,databasename, pasword, beginTimeStr,endTimeStr,"DCRQ","1");
-        RawDataSync.syncData(databasename,tablename,raw,"DCRQ",begintime,endtime);
+        deleteTableBeforeInsert(tablename, url,targetdatabasename, pasword, beginTimeStr,endTimeStr,"DCRQ","1");
+        RawDataSync.MultisyncData(databasename,targetdatabasename,tablename,raw,"DCRQ",begintime,endtime);
         return Result.SUCCESS(begintime+"日："+"T_SJKJ_RMTJ_DCJL 数据同步成功");
     }
 
@@ -79,11 +81,12 @@ public class CFOriginSyncByDay {
         //警民联调 V_SJLX
         String databasename = DatabaseTable.CFT_SJKJ_RMTJ_TJGZS.getDatabasename();
         String tablename = DatabaseTable.CFT_SJKJ_RMTJ_TJGZS.getTablename();
+        String targetdatabasename = DatabaseTable.CFT_SJKJ_RMTJ_TJGZS.getTargetdatabasename();
         String beginTimeStr = DateUtil.parse(begintime).toString("yyyy-MM-dd");
         String endTimeStr = DateUtil.parse(endtime).toString("yyyy-MM-dd");
         //数据入库前删除当前时间段表数据
-        deleteTableBeforeInsert(tablename, url,databasename, pasword, beginTimeStr,endTimeStr,"TJGZSSLSJ","1");
-        RawDataSync.syncData(databasename,tablename,raw,"TJGZSSLSJ",begintime,endtime);
+        deleteTableBeforeInsert(tablename, url,targetdatabasename, pasword, beginTimeStr,endTimeStr,"TJGZSSLSJ","1");
+        RawDataSync.MultisyncData(databasename,targetdatabasename,tablename,raw,"TJGZSSLSJ",begintime,endtime);
         return Result.SUCCESS(begintime+"日："+"T_SJKJ_RMTJ_TJGZS 数据同步成功");
     }
 
@@ -93,11 +96,12 @@ public class CFOriginSyncByDay {
         //警民联调 V_SJLX
         String databasename = DatabaseTable.CFT_SJKJ_RMTJ_TJJL.getDatabasename();
         String tablename = DatabaseTable.CFT_SJKJ_RMTJ_TJJL.getTablename();
+        String targetdatabasename = DatabaseTable.CFT_SJKJ_RMTJ_TJJL.getTargetdatabasename();
         String beginTimeStr = DateUtil.parse(begintime).toString("yyyy-MM-dd");
         String endTimeStr = DateUtil.parse(endtime).toString("yyyy-MM-dd");
         //数据入库前删除当前时间段表数据
-        deleteTableBeforeInsert(tablename, url,databasename, pasword, beginTimeStr,endTimeStr,"TJRQ","1");
-        RawDataSync.syncData(databasename,tablename,raw,"TJRQ",begintime,endtime);
+        deleteTableBeforeInsert(tablename, url,targetdatabasename, pasword, beginTimeStr,endTimeStr,"TJRQ","1");
+        RawDataSync.MultisyncData(databasename,targetdatabasename,tablename,raw,"TJRQ",begintime,endtime);
         return Result.SUCCESS(begintime+"日："+"T_SJKJ_RMTJ_TJJL 数据同步成功");
     }
 
@@ -107,11 +111,12 @@ public class CFOriginSyncByDay {
         //警民联调 V_SJLX
         String databasename = DatabaseTable.CFT_SJKJ_RMTJ_TJWYH.getDatabasename();
         String tablename = DatabaseTable.CFT_SJKJ_RMTJ_TJWYH.getTablename();
+        String targetdatabasename = DatabaseTable.CFT_SJKJ_RMTJ_TJWYH.getTargetdatabasename();
         String beginTimeStr = DateUtil.parse(begintime).toString("yyyy-MM-dd HH:mm:ss");
         String endTimeStr = DateUtil.parse(endtime).toString("yyyy-MM-dd HH:mm:ss");
         //数据入库前删除当前时间段表数据
-        deleteTableBeforeInsert(tablename, url,databasename, pasword, beginTimeStr,endTimeStr,"XXCJRQ","1");
-        RawDataSync.syncData(databasename,tablename,raw,"XXCJRQ",begintime,endtime);
+        deleteTableBeforeInsert(tablename, url,targetdatabasename, pasword, beginTimeStr,endTimeStr,"XXCJRQ","1");
+        RawDataSync.MultisyncData(databasename,targetdatabasename,tablename,raw,"XXCJRQ",begintime,endtime);
         return Result.SUCCESS(begintime+"日："+"T_SJKJ_RMTJ_TJWYH 数据同步成功");
     }
 
@@ -121,11 +126,12 @@ public class CFOriginSyncByDay {
         //警民联调 V_SJLX
         String databasename = DatabaseTable.CFT_SJKJ_RMTJ_TJY.getDatabasename();
         String tablename = DatabaseTable.CFT_SJKJ_RMTJ_TJY.getTablename();
+        String targetdatabasename = DatabaseTable.CFT_SJKJ_RMTJ_TJY.getTargetdatabasename();
         String beginTimeStr = DateUtil.parse(begintime).toString("yyyy-MM-dd HH:mm:ss");
         String endTimeStr = DateUtil.parse(endtime).toString("yyyy-MM-dd HH:mm:ss");
         //数据入库前删除当前时间段表数据
-        deleteTableBeforeInsert(tablename, url,databasename, pasword, beginTimeStr,endTimeStr,"XXCJRQ","1");
-        RawDataSync.syncData(databasename,tablename,raw,"XXCJRQ",begintime,endtime);
+        deleteTableBeforeInsert(tablename, url,targetdatabasename, pasword, beginTimeStr,endTimeStr,"XXCJRQ","1");
+        RawDataSync.MultisyncData(databasename,targetdatabasename,tablename,raw,"XXCJRQ",begintime,endtime);
         return Result.SUCCESS(begintime+"日："+"T_SJKJ_RMTJ_TJY 数据同步成功");
     }
 
