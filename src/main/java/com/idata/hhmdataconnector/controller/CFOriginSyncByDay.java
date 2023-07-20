@@ -105,20 +105,20 @@ public class CFOriginSyncByDay {
         return Result.SUCCESS(begintime+"日："+"T_SJKJ_RMTJ_TJJL 数据同步成功");
     }
 
-    @ApiOperation(value="T_SJKJ_RMTJ_TJWYH 原始数据同步",notes="T_SJKJ_RMTJ_TJWYH 表数据按天同步")
-    @GetMapping("/cft_sjkj_rmtj_tjwyh")
-    public Result cft_sjkj_rmtj_tjwyh() throws SQLException {
-        //警民联调 V_SJLX
-        String databasename = DatabaseTable.CFT_SJKJ_RMTJ_TJWYH.getDatabasename();
-        String tablename = DatabaseTable.CFT_SJKJ_RMTJ_TJWYH.getTablename();
-        String targetdatabasename = DatabaseTable.CFT_SJKJ_RMTJ_TJWYH.getTargetdatabasename();
-        String beginTimeStr = DateUtil.parse(begintime).toString("yyyy-MM-dd HH:mm:ss");
-        String endTimeStr = DateUtil.parse(endtime).toString("yyyy-MM-dd HH:mm:ss");
-        //数据入库前删除当前时间段表数据
-        deleteTableBeforeInsert(tablename, url,targetdatabasename, pasword, beginTimeStr,endTimeStr,"XXCJRQ","1");
-        RawDataSync.MultisyncData(databasename,targetdatabasename,tablename,raw,"XXCJRQ",begintime,endtime);
-        return Result.SUCCESS(begintime+"日："+"T_SJKJ_RMTJ_TJWYH 数据同步成功");
-    }
+//    @ApiOperation(value="T_SJKJ_RMTJ_TJWYH 原始数据同步",notes="T_SJKJ_RMTJ_TJWYH 表数据按天同步")
+//    @GetMapping("/cft_sjkj_rmtj_tjwyh")
+//    public Result cft_sjkj_rmtj_tjwyh() throws SQLException {
+//        //警民联调 V_SJLX
+//        String databasename = DatabaseTable.CFT_SJKJ_RMTJ_TJWYH.getDatabasename();
+//        String tablename = DatabaseTable.CFT_SJKJ_RMTJ_TJWYH.getTablename();
+//        String targetdatabasename = DatabaseTable.CFT_SJKJ_RMTJ_TJWYH.getTargetdatabasename();
+//        String beginTimeStr = DateUtil.parse(begintime).toString("yyyy-MM-dd HH:mm:ss");
+//        String endTimeStr = DateUtil.parse(endtime).toString("yyyy-MM-dd HH:mm:ss");
+//        //数据入库前删除当前时间段表数据
+//        deleteTableBeforeInsert(tablename, url,targetdatabasename, pasword, beginTimeStr,endTimeStr,"XXCJRQ","1");
+//        RawDataSync.MultisyncData(databasename,targetdatabasename,tablename,raw,"XXCJRQ",begintime,endtime);
+//        return Result.SUCCESS(begintime+"日："+"T_SJKJ_RMTJ_TJWYH 数据同步成功");
+//    }
 
     @ApiOperation(value="T_SJKJ_RMTJ_TJY 原始数据同步",notes="T_SJKJ_RMTJ_TJY 表数据按天同步")
     @GetMapping("/cft_sjkj_rmtj_tjy")
