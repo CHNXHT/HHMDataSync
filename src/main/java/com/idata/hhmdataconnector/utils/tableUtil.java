@@ -51,7 +51,7 @@ public class tableUtil {
             throw new RuntimeException(e);
         }
         String deleteTableQuery = "";
-        if(tableName.equals("t_mediation_case_test")){
+        if(tableName.equals("t_mediation_case")){
             deleteTableQuery = String.format("delete from "+ tableName+ " where "+ timeFiled +" between '"+ beginTime+"' and '"+endTime+"'"+"and case_source = '"+sourceFlag+"'");
         }else {
             deleteTableQuery = String.format("delete from "+ tableName+ " where "+ timeFiled +" between '"+ beginTime+"' and '"+endTime+"'");
@@ -107,6 +107,6 @@ public class tableUtil {
         String endtime = DateUtil.beginOfDay(DateUtil.yesterday()).toString("yyyy-MM-dd HH:mm:ss");
         String beginTimeStr = DateUtil.parse(beginTime).toString("yyyy-MM-dd HH:mm:ss");
         String endTimeStr = DateUtil.parse(endtime).toString("yyyy-MM-dd HH:mm:ss");
-        deleteTableBeforeInsert("t_mediation_case_test", DataSource.HHM.getUrl(),"root", DataSource.HHM.getPassword(), beginTimeStr,endTimeStr,"create_time","1");
+        deleteTableBeforeInsert("t_mediation_case", DataSource.HHM.getUrl(),"root", DataSource.HHM.getPassword(), beginTimeStr,endTimeStr,"create_time","1");
     }
 }

@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 8820
 spring:
   mvc:
     pathmatch:
@@ -25,7 +25,7 @@ swagger:
     post:
       - code: 500
         modelRef: ERROR
-  host: localhost:8080
+  host: localhost:8820
   license: Apache License, Version 2.0
   licenseUrl: https://www.apache.org/licenses/LICENSE-2.0.html
   termsOfServiceUrl: https://github.com/dyc87112/spring-boot-starter-swagger

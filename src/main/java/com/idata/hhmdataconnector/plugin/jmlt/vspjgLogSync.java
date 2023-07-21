@@ -6,6 +6,7 @@ import com.idata.hhmdataconnector.model.hhm.t_mediation_case;
 import com.idata.hhmdataconnector.model.hhm.t_mediation_case_log;
 import com.idata.hhmdataconnector.model.jmlt.V_SPJG;
 import com.idata.hhmdataconnector.utils.DateUtils;
+import org.apache.spark.SparkConf;
 import org.apache.spark.sql.*;
 import scala.Function1;
 import java.io.Serializable;
@@ -25,8 +26,14 @@ public class vspjgLogSync {
 //        dataSync(begintime,raw);
     }
     public static void dataSync(String beginTime,String endTime, String raw) {
+        SparkConf conf = new SparkConf();
+        conf.set("spark.driver.cores","4");  //设置driver的CPU核数
+//        conf.set("spark.driver.maxResultSize","2g"); //设置driver端结果存放的最大容量，这里设置成为2G，超过2G的数据,job就直接放弃，不运行了
+        conf.set("spark.driver.memory","4g");  //driver给的内存大小
+        conf.set("spark.executor.memory","8g");// 每个executor的内存
         SparkSession spark = SparkSession.builder()
                 .appName("vspjgLogSync:"+beginTime)
+                .config(conf)
                 .master("local[20]")
                 .getOrCreate();
         /*
@@ -37,7 +44,7 @@ public class vspjgLogSync {
          */
         String dataSourceName = "JMLT";//args[0];
         String tableName = "V_SPJG";//args[1];
-        String targetTableName = "t_mediation_case_log_test";
+        String targetTableName = "t_mediation_case_log";
         String beginTimeStr = DateUtil.parse(beginTime).toString("yyyyMMddHHmmss");
         String endTimeStr = DateUtil.parse(endTime).toString("yyyyMMddHHmmss");
         //获取来源表数据

@@ -3,6 +3,7 @@ package com.idata.hhmdataconnector.plugin.cf;
 import cn.hutool.core.date.DateUtil;
 import com.idata.hhmdataconnector.enums.DataSource;
 import com.idata.hhmdataconnector.model.hhm.t_mediation_case;
+import org.apache.spark.SparkConf;
 import org.apache.spark.sql.*;
 import org.apache.spark.sql.types.DataTypes;
 import scala.Function1;
@@ -29,8 +30,14 @@ public class ajblCaseSync {
     }
 
     public static void dataSync(String beginTime,String endTime, String raw) {
+        SparkConf conf = new SparkConf();
+        conf.set("spark.driver.cores","4");  //设置driver的CPU核数
+//        conf.set("spark.driver.maxResultSize","2g"); //设置driver端结果存放的最大容量，这里设置成为2G，超过2G的数据,job就直接放弃，不运行了
+        conf.set("spark.driver.memory","4g");  //driver给的内存大小
+        conf.set("spark.executor.memory","8g");// 每个executor的内存
         SparkSession spark = SparkSession.builder()
                 .appName("ajblCaseSync:"+beginTime)
+                .config(conf)
                 .master("local[20]")
                 .getOrCreate();
 
@@ -42,17 +49,12 @@ public class ajblCaseSync {
          */
         String dataSourceName = "CF";//args[0];
         String tableName = "T_SJKJ_RMTJ_AJBL";//args[1];
-        String targetTableName = "t_mediation_case_test";
+        String targetTableName = "t_mediation_case";
         String timeField = "SLRQ";
-
-//        System.out.println(beginTime+endTime+raw);
 
         String beginTimeStr = DateUtil.parse(beginTime).toString("yyyy-MM-dd HH:mm:ss");
         String endTimeStr = DateUtil.parse(endTime).toString("yyyy-MM-dd HH:mm:ss");
         Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName, timeField, beginTimeStr,endTimeStr, raw);
-
-        //数据入库前删除当前时间段表数据
-        deleteTableBeforeInsert(targetTableName, DataSource.HHM.getUrl(),DataSource.HHM.getUser(), DataSource.HHM.getPassword(), beginTimeStr,endTimeStr,"create_time","2");
 
         //获取来源表数据
         if(!beginTimeStr.equals("raw")){
@@ -62,23 +64,29 @@ public class ajblCaseSync {
         Dataset<Row> rowDataset = rawDF.withColumn("SAJE", rawDF.col("SAJE").cast(DataTypes.LongType));
         //todo code SLDAW->T_SJKJ_RMTJ_TJWYH(XZDQ)->t_organization(province,city,county)
         Dataset<Row> TJWYHDF = getRawDF(spark, "T_SJKJ_RMTJ_TJWYH", dataSourceName, timeField, beginTimeStr,endTimeStr, "")
-                .select("TWHMC","XZDQ");
+                .select("TWHMC","XZDQ")
+                .distinct();
 
         Dataset<Row> ORGDF = getRawDF(spark, "t_organization", "HHM", timeField, beginTimeStr,endTimeStr, "")
                 .select("province","city","county")
-                .where("town = ''");
-
+                .where("town = ''")
+                .distinct();
+//        ORGDF.withColumn("aa",ORGDF.col("county").substr(0,6)).show(5);
 
         Dataset<Row> raw_tjwyhDF = rawDF.join(TJWYHDF, rawDF.col("SLDW").equalTo(TJWYHDF.col("TWHMC")), "left");
+
         //定义数据源对象
-        Dataset<Row> rowDF = raw_tjwyhDF.join(ORGDF, ORGDF.col("county").contains(raw_tjwyhDF.col("XZDQ")));
-//                .as(Encoders.bean(T_SJKJ_RMTJ_AJBL.class));
+        Dataset<Row> rowDF = raw_tjwyhDF.join(ORGDF, ORGDF.col("county").substr(0,6).equalTo(raw_tjwyhDF.col("XZDQ")),"left");
 
         //转化为目标表结构
         Dataset<t_mediation_case> tcDF = rowDF
                 .map(new ConvertToTMediationCase(), Encoders.bean(t_mediation_case.class));
-        tcDF.show();
+        tcDF.show(10);
+        //数据入库前删除当前时间段表数据
+//        deleteTableBeforeInsert(targetTableName, DataSource.HHM.getUrl(),DataSource.HHM.getUser(), DataSource.HHM.getPassword(), beginTimeStr,endTimeStr,"create_time","2");
+
         tcDF
+                .distinct()
                 .repartition(20)
                 .write()
                 .mode(SaveMode.Append)

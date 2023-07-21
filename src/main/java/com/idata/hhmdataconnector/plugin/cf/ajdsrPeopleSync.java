@@ -6,6 +6,7 @@ import com.idata.hhmdataconnector.model.cf.T_SJKJ_RMTJ_AJDSR;
 import com.idata.hhmdataconnector.model.hhm.t_mediation_case_people;
 import com.idata.hhmdataconnector.model.jmlt.V_ZD;
 import com.idata.hhmdataconnector.utils.idCardUtils;
+import org.apache.spark.SparkConf;
 import org.apache.spark.sql.*;
 import scala.Function1;
 import java.io.Serializable;
@@ -24,8 +25,14 @@ public class ajdsrPeopleSync {
 //        dataSync("","");
     }
     public static void dataSync(String beginTime,String endTime, String raw) {
+        SparkConf conf = new SparkConf();
+        conf.set("spark.driver.cores","4");  //设置driver的CPU核数
+//        conf.set("spark.driver.maxResultSize","2g"); //设置driver端结果存放的最大容量，这里设置成为2G，超过2G的数据,job就直接放弃，不运行了
+        conf.set("spark.driver.memory","4g");  //driver给的内存大小
+        conf.set("spark.executor.memory","8g");// 每个executor的内存
         SparkSession spark = SparkSession.builder()
                 .appName("ajdsrPeopleSync:"+beginTime)
+                .config(conf)
                 .master("local[20]")
                 .getOrCreate();
         /*
@@ -36,7 +43,7 @@ public class ajdsrPeopleSync {
          */
         String dataSourceName = "CF";//args[0];
         String tableName = "T_SJKJ_RMTJ_AJDSR";//args[1];
-        String targetTableName = "t_mediation_case_people_test";
+        String targetTableName = "t_mediation_case_people";
         String beginTimeStr = DateUtil.parse(beginTime).toString("yyyy-MM-dd HH:mm:ss");
         String endTimeStr = DateUtil.parse(endTime).toString("yyyy-MM-dd HH:mm:ss");
         //获取来源表数据
@@ -44,7 +51,7 @@ public class ajdsrPeopleSync {
         Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName,"",beginTimeStr,endTimeStr,"");
         Dataset<Row> rowDataset = rawDF;
         //关联case表获取id
-        Dataset<Row> caseDF = getRawDF(spark, "t_mediation_case_test", "HHM","create_time",beginTimeStr,endTimeStr,"raw")
+        Dataset<Row> caseDF = getRawDF(spark, "t_mediation_case", "HHM","create_time",beginTimeStr,endTimeStr,"raw")
                 .where("case_source = '2'")
                 .select("id","case_num");
 

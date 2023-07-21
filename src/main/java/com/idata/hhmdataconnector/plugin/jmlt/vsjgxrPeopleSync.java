@@ -7,6 +7,7 @@ import com.idata.hhmdataconnector.model.jmlt.V_SJGXR;
 import com.idata.hhmdataconnector.model.jmlt.V_ZD;
 import com.idata.hhmdataconnector.utils.DateUtils;
 import com.idata.hhmdataconnector.utils.idCardUtils;
+import org.apache.spark.SparkConf;
 import org.apache.spark.sql.*;
 import scala.Function1;
 
@@ -28,8 +29,14 @@ public class vsjgxrPeopleSync {
 //        dataSync(begintime, raw);
     }
     public static void dataSync(String beginTime,String endTime, String raw) {
+        SparkConf conf = new SparkConf();
+        conf.set("spark.driver.cores","4");  //设置driver的CPU核数
+//        conf.set("spark.driver.maxResultSize","2g"); //设置driver端结果存放的最大容量，这里设置成为2G，超过2G的数据,job就直接放弃，不运行了
+        conf.set("spark.driver.memory","4g");  //driver给的内存大小
+        conf.set("spark.executor.memory","8g");// 每个executor的内存
         SparkSession spark = SparkSession.builder()
                 .appName("vsjgxrPeopleSync:"+beginTime)
+                .config(conf)
                 .master("local[20]")
                 .getOrCreate();
         /*
@@ -40,7 +47,7 @@ public class vsjgxrPeopleSync {
          */
         String dataSourceName = "JMLT";//args[0];
         String tableName = "V_SJGXR";//args[1];
-        String targetTableName = "t_mediation_case_people_test";
+        String targetTableName = "t_mediation_case_people";
         String beginTimeStr = DateUtil.parse(beginTime).toString("yyyyMMddHHmmss");
         String endTimeStr = DateUtil.parse(endTime).toString("yyyyMMddHHmmss");
         String other_raw = "";
@@ -52,7 +59,7 @@ public class vsjgxrPeopleSync {
         Dataset<V_SJGXR> rowDF = rowDataset.as(Encoders.bean(V_SJGXR.class));
         //需要和case ，ZD表join
         //关联case表获取id
-        Dataset<Row> caseDF = getRawDF(spark, "t_mediation_case_test", "HHM","","","",other_raw)
+        Dataset<Row> caseDF = getRawDF(spark, "t_mediation_case", "HHM","","","",other_raw)
                 .select("id","resource_id");
         Dataset<V_ZD> vzdDF = getRawDF(spark, "V_ZD", dataSourceName,"","","",other_raw)
                 .as(Encoders.bean(V_ZD.class));

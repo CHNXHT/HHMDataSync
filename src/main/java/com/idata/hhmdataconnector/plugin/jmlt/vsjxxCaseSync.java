@@ -4,6 +4,7 @@ import cn.hutool.core.date.DateUtil;
 import com.idata.hhmdataconnector.enums.DataSource;
 import com.idata.hhmdataconnector.model.hhm.t_mediation_case;
 import com.idata.hhmdataconnector.utils.DateUtils;
+import org.apache.spark.SparkConf;
 import org.apache.spark.sql.*;
 import org.apache.spark.sql.types.DataTypes;
 import scala.Function1;
@@ -20,9 +21,15 @@ public class vsjxxCaseSync {
         dataSync(beginTime,endtime,raw);
     }
     public static void dataSync(String beginTime,String endTime, String raw) {
+        SparkConf conf = new SparkConf();
+        conf.set("spark.driver.cores","4");  //设置driver的CPU核数
+//        conf.set("spark.driver.maxResultSize","2g"); //设置driver端结果存放的最大容量，这里设置成为2G，超过2G的数据,job就直接放弃，不运行了
+        conf.set("spark.driver.memory","4g");  //driver给的内存大小
+        conf.set("spark.executor.memory","8g");// 每个executor的内存
 
         SparkSession spark = SparkSession.builder()
                 .appName("vsjxxCaseSync:"+beginTime)
+                .config(conf)
                 .master("local[20]")
                 .getOrCreate();
 
@@ -34,28 +41,30 @@ public class vsjxxCaseSync {
          */
         String dataSourceName = "JMLT";//args[0];
         String tableName = "V_SJXX";//args[1];
-        String targetTableName = "t_mediation_case_test";
+        String targetTableName = "t_mediation_case";
         String beginTimeStr = DateUtil.parse(beginTime).toString("yyyyMMddHHmmss");
         String endTimeStr = DateUtil.parse(endTime).toString("yyyyMMddHHmmss");
         String other_raw = "";
         //获取来源表数据
-//        System.out.println("=====================start=====================");
+
         Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName,"GXSJ",beginTimeStr,endTimeStr,raw);
 
-//        rawDF.show();
         //todo t_manager_tag_dict
-        Dataset<Row> tagDF = getRawDF(spark, "t_manage_tag_dict", "HHM","GXSJ",beginTimeStr,endTimeStr,"")
-                .select("name","code")
-                .where("parent_code = 'CaseType'");
+//        Dataset<Row> tagDF = getRawDF(spark, "t_manage_tag_dict", "HHM","GXSJ",beginTimeStr,endTimeStr,"")
+//                .select("name","code")
+//                .where("parent_code = 'CaseType'")
+//                .distinct();
         // jf_code
         Dataset<Row> jf_codeDF = getRawDF(spark, "t_manage_jmlt_jf_code", "HHM","GXSJ",beginTimeStr,endTimeStr,"")
-                .select("name","code").withColumnRenamed("code","code1");
+                .select("name","code","tag_code").withColumnRenamed("code","code1")
+                .distinct();
 
-        Dataset<Row> jf_raw_join = rawDF.join(jf_codeDF, rawDF.col("AJXL").equalTo(jf_codeDF.col("code1")));
+        Dataset<Row> jf_raw_join = rawDF.join(jf_codeDF, rawDF.col("AJXL").equalTo(jf_codeDF.col("code1")),"left");
 
-        Dataset<Row> res_join = jf_raw_join.join(tagDF, jf_raw_join.col("name").contains(tagDF.col("name")));
+//        Dataset<Row> res_join = jf_raw_join.join(tagDF, jf_raw_join.col("name").contains(tagDF.col("name")),"left");
 
-        Dataset<Row> rowDataset = res_join.withColumn("SJRS", rawDF.col("SJRS").cast(DataTypes.LongType));
+        Dataset<Row> rowDataset = jf_raw_join.withColumn("SJRS", rawDF.col("SJRS").cast(DataTypes.LongType));
+        rowDataset.show();
 //        res_join.show();
 //        res_join.printSchema();
 
@@ -68,7 +77,7 @@ public class vsjxxCaseSync {
 
         //数据入库前删除当前时间段表数据
         deleteTableBeforeInsert(targetTableName, DataSource.HHM.getUrl(),DataSource.HHM.getUser(), DataSource.HHM.getPassword(), beginTimeStr,endTimeStr,"create_time","1");
-        tcDF.show();
+//        tcDF.show();
         tcDF
                 .write()
                 .mode(SaveMode.Append)
@@ -81,12 +90,22 @@ public class vsjxxCaseSync {
         @Override
         public t_mediation_case apply(Row vsjxx) {
             t_mediation_case tMediationCase = new t_mediation_case();
-            tMediationCase.setResource_id(vsjxx.getAs("ID").toString());
+            if (vsjxx.getAs("ID")!= null){
+                tMediationCase.setResource_id(vsjxx.getAs("ID").toString());
+            }
+
             //创建时间
-            tMediationCase.setCreate_time(DateUtils.strToTsSFM(vsjxx.getAs("CJSJ").toString()));
+            if(vsjxx.getAs("CJSJ")!=null){
+                tMediationCase.setCreate_time(DateUtils.strToTsSFM(vsjxx.getAs("CJSJ").toString()));
+            }
+
             //修改时间
-            tMediationCase.setUpdate_time(DateUtils.strToTsSFM(vsjxx.getAs("GXSJ").toString()));
+            if(vsjxx.getAs("GXSJ")!=null){
+                tMediationCase.setUpdate_time(DateUtils.strToTsSFM(vsjxx.getAs("GXSJ").toString()));
+            }
+
             //纠纷编号
+            if(vsjxx.getAs("AJBH")!=null)
             tMediationCase.setCase_num(vsjxx.getAs("AJBH").toString());
             //纠纷描述
             tMediationCase.setCase_description(vsjxx.getAs("AJMS").toString());
@@ -103,13 +122,22 @@ public class vsjxxCaseSync {
             // from feidong
             tMediationCase.setPlace_code("340000000000,340100000000,340122000000");
             //纠纷发生地
-            tMediationCase.setPlace_detail(vsjxx.getAs("FSDD").toString());
+            if(vsjxx.getAs("FSDD")!=null){
+                tMediationCase.setPlace_detail(vsjxx.getAs("FSDD").toString());
+            }
+
             //纠纷发生日期
-            tMediationCase.setOccurrence_time(DateUtils.strToTsSF(vsjxx.getAs("FSSJ").toString()));
+            if(vsjxx.getAs("FSSJ")!=null){
+                tMediationCase.setOccurrence_time(DateUtils.strToTsSF(vsjxx.getAs("FSSJ").toString()));
+            }
+
             //创建人ID
             tMediationCase.setCreate_user_id(10101L);
             //创建人姓名
-            tMediationCase.setCreate_user_name(vsjxx.getAs("CJRXM").toString());
+            if(vsjxx.getAs("CJRXM")!=null){
+                tMediationCase.setCreate_user_name(vsjxx.getAs("CJRXM").toString());
+            }
+
             //文书状态
             tMediationCase.setDoc_status(0);
             //调解结果
@@ -125,28 +153,32 @@ public class vsjxxCaseSync {
 //            }
 
             //纠纷状态 先处理办理状态 再处理调整状态
-            String blzt = vsjxx.getAs("BLZT").toString();
-            String sjzt = vsjxx.getAs("SJZT").toString();
-            if(blzt != null){
+            if(vsjxx.getAs("BLZT") != null){
+                String blzt = vsjxx.getAs("BLZT").toString();
                 if(0 == Integer.parseInt(blzt)){
                     tMediationCase.setStatus(1);
                 } else if(2 == Integer.parseInt(blzt)){
-                    tMediationCase.setStatus(4);
+                    tMediationCase.setStatus(3);
                 }else{
-                    if(sjzt != null){
+                    if(vsjxx.getAs("SJZT") != null){
+                        String sjzt = vsjxx.getAs("SJZT").toString();
                         if(1 == Integer.parseInt(sjzt) || 2 == Integer.parseInt(sjzt) || 3 == Integer.parseInt(sjzt)){
                             tMediationCase.setStatus(2);
                         }else if(4 == Integer.parseInt(sjzt)){
                             tMediationCase.setStatus(7);
                         }else if(5 == Integer.parseInt(sjzt) || 6 == Integer.parseInt(sjzt) || 7 == Integer.parseInt(sjzt) || 8 == Integer.parseInt(sjzt)){
-                            tMediationCase.setStatus(4);
+                            //原先4（结束），现在3（成功）
+                            tMediationCase.setStatus(3);
                         }
                     }
                 }
             }
             //纠纷来源 1为警民联调
             tMediationCase.setCase_source(1);
-            tMediationCase.setCase_type(vsjxx.getAs("code").toString());
+
+            if (vsjxx.getAs("tag_code")!= null){
+                tMediationCase.setCase_type(vsjxx.getAs("tag_code").toString());
+            }
             // 设置其他属性
             return tMediationCase;
         }

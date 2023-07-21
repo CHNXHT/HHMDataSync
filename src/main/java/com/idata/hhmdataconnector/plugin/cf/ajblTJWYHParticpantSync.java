@@ -3,6 +3,7 @@ package com.idata.hhmdataconnector.plugin.cf;
 import cn.hutool.core.date.DateUtil;
 import com.idata.hhmdataconnector.enums.DataSource;
 import com.idata.hhmdataconnector.model.hhm.t_mediation_participant;
+import org.apache.spark.SparkConf;
 import org.apache.spark.sql.*;
 import scala.Function1;
 import java.io.Serializable;
@@ -23,8 +24,14 @@ public class ajblTJWYHParticpantSync {
     }
 
     public static void dataSync(String beginTime,String endTime, String raw) {
+        SparkConf conf = new SparkConf();
+        conf.set("spark.driver.cores","4");  //设置driver的CPU核数
+//        conf.set("spark.driver.maxResultSize","2g"); //设置driver端结果存放的最大容量，这里设置成为2G，超过2G的数据,job就直接放弃，不运行了
+        conf.set("spark.driver.memory","4g");  //driver给的内存大小
+        conf.set("spark.executor.memory","8g");// 每个executor的内存
         SparkSession spark = SparkSession.builder()
                 .appName("ajblTJWYHParticpantSync:"+beginTime)
+                .config(conf)
                 .master("local[20]")
                 .getOrCreate();
         /*
@@ -35,7 +42,7 @@ public class ajblTJWYHParticpantSync {
          */
         String dataSourceName = "HHM";//args[0];
         String tableName = "t_mediation_case";//args[1];
-        String targetTableName = "t_mediation_participant_test";
+        String targetTableName = "t_mediation_participant";
         String timeField = "SLRQ";
         String beginTimeStr = DateUtil.parse(beginTime).toString("yyyy-MM-dd HH:mm:ss");
         String endTimeStr = DateUtil.parse(endTime).toString("yyyy-MM-dd HH:mm:ss");
@@ -64,8 +71,8 @@ public class ajblTJWYHParticpantSync {
 //                .where("town = ''")
 //                .where("county !=''");
 
-        Dataset<Row> organCountryDF = organizationDF.withColumn("county_6", organizationDF.col("county").substr(1, 6));
-
+        Dataset<Row> organCountryDF = organizationDF.withColumn("county_6", organizationDF.col("county").substr(0, 6));
+//        organCountryDF.show();
         Dataset<Row> resDF = caseJoinDF.join(organCountryDF, caseJoinDF.col("XZDQ").equalTo(organCountryDF.col("county_6")));
 
 
@@ -74,7 +81,7 @@ public class ajblTJWYHParticpantSync {
                 .map(new convertToTMediationParticipant(), Encoders.bean(t_mediation_participant.class));
         //数据入库前删除当前时间段表数据
         deleteTableBeforeInsert(targetTableName, DataSource.HHM.getUrl(),DataSource.HHM.getUser(), DataSource.HHM.getPassword(), beginTimeStr,endTimeStr,"update_time","2");
-        tcDF.show();
+        tcDF.show(10);
         tcDF
                 .distinct()
                 .repartition(20)
