@@ -18,16 +18,6 @@ import static com.idata.hhmdataconnector.utils.tableUtil.deleteTableBeforeInsert
  * @date: 2023/7/10 16:29
  */
 public class ajblCaseSync {
-    public static void main(String[] args) {
-//        String beginTime = "2018-01-01";
-//        String endtime = DateUtil.beginOfDay(DateUtil.yesterday()).toString("yyyy-MM-dd HH:mm:ss");
-//        String raw = "oneday";
-//
-////        System.out.println(begintime);
-//        dataSync( beginTime,endtime,raw);
-        String beginTimeStr = DateUtil.parse("2017-01-01").toString("yyyy-MM-dd HH:mm:ss");
-        System.out.println(beginTimeStr);
-    }
 
     public static void dataSync(String beginTime,String endTime, String raw) {
         SparkConf conf = new SparkConf();
@@ -83,7 +73,7 @@ public class ajblCaseSync {
                 .map(new ConvertToTMediationCase(), Encoders.bean(t_mediation_case.class));
         tcDF.show(10);
         //数据入库前删除当前时间段表数据
-//        deleteTableBeforeInsert(targetTableName, DataSource.HHM.getUrl(),DataSource.HHM.getUser(), DataSource.HHM.getPassword(), beginTimeStr,endTimeStr,"create_time","2");
+        deleteTableBeforeInsert(targetTableName, DataSource.HHM.getUrl(),DataSource.HHM.getUser(), DataSource.HHM.getPassword(), beginTimeStr,endTimeStr,"create_time","2");
 
         tcDF
                 .distinct()

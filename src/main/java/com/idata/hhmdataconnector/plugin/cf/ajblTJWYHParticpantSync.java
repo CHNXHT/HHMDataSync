@@ -19,7 +19,7 @@ import static com.idata.hhmdataconnector.utils.tableUtil.deleteTableBeforeInsert
 public class ajblTJWYHParticpantSync {
     public static void main(String[] args) {
         String beginTime = DateUtil.beginOfDay(DateUtil.lastMonth()).toString("yyyy-MM-dd HH:mm:ss");
-        String endTime = DateUtil.beginOfDay(DateUtil.lastMonth()).toString("yyyy-MM-dd HH:mm:ss");
+        String endTime = DateUtil.beginOfDay(DateUtil.yesterday()).toString("yyyy-MM-dd HH:mm:ss");
         dataSync(beginTime,endTime,"raw");
     }
 
@@ -47,7 +47,7 @@ public class ajblTJWYHParticpantSync {
         String beginTimeStr = DateUtil.parse(beginTime).toString("yyyy-MM-dd HH:mm:ss");
         String endTimeStr = DateUtil.parse(endTime).toString("yyyy-MM-dd HH:mm:ss");
         //获取来源表数据
-        Dataset<Row> rawCaseDF = getRawDF(spark, "t_mediation_case_test", "HHM","","","","")
+        Dataset<Row> rawCaseDF = getRawDF(spark, "t_mediation_case", "HHM","","","","")
                 .select("id","case_num");
 
         Dataset<Row> rawAJBLDF = getRawDF(spark, "T_SJKJ_RMTJ_AJBL", "CF",timeField,beginTimeStr,endTimeStr,raw)
@@ -67,7 +67,7 @@ public class ajblTJWYHParticpantSync {
                 .distinct();
 
         Dataset<Row> organizationDF = getRawDF(spark, "t_organization", "HHM","","","","")
-                .select("id","county");
+                .select("id","county","parent_id");
 //                .where("town = ''")
 //                .where("county !=''");
 
@@ -75,6 +75,7 @@ public class ajblTJWYHParticpantSync {
 //        organCountryDF.show();
         Dataset<Row> resDF = caseJoinDF.join(organCountryDF, caseJoinDF.col("XZDQ").equalTo(organCountryDF.col("county_6")));
 
+        resDF.where("parent_id='221'").show();
 
         //转化为目标表结构
         Dataset<t_mediation_participant> tcDF = resDF
@@ -107,9 +108,12 @@ public class ajblTJWYHParticpantSync {
             //更新日期
             tmediationcasepeople.setUpdate_time(DateUtil.now());
             //纠纷机构id 766为肥东
-            tmediationcasepeople.setOrg_id(766L);
+            if(cas.getAs("parent_id") !=null){
+                tmediationcasepeople.setOrg_id(Long.parseLong(cas.getAs("parent_id").toString()));
+            }
+//            tmediationcasepeople.setOrg_id();
             //案件流转参与者id 即能看到该纠纷数据的用户id 12310（叶秀）
-            tmediationcasepeople.setUser_id(12310L);
+//            tmediationcasepeople.setUser_id(12310L);
 
             return tmediationcasepeople;
         }

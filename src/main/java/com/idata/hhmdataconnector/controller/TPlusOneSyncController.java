@@ -31,6 +31,7 @@ public class TPlusOneSyncController {
         ajblCaseSync.dataSync(begintime,endtime,raw);
         vsjxxCaseSync.dataSync(begintime,endtime,raw);
 
+        //todo 除case报错下面报错应该继续运行
         //hhm people表sync
         ajdsrPeopleSync.dataSync(begintime,endtime,raw);
         vsjgxrPeopleSync.dataSync(begintime,endtime,raw);
