@@ -17,9 +17,11 @@ import static com.idata.hhmdataconnector.utils.connectionUtil.hhm_mysqlPropertie
  */
 public class caseParticipantSync {
     public static void main(String[] args) {
-//        String begintime = DateUtil.beginOfDay(DateUtil.lastMonth()).toString("yyyy-MM-dd HH:mm:ss");
-//        String raw = "oneday";
-//        dataSync(begintime, raw);
+        String begintime = DateUtil.beginOfDay(DateUtil.lastMonth()).toString("yyyy-MM-dd HH:mm:ss");
+
+
+        String endTime = DateUtil.beginOfDay(DateUtil.yesterday()).toString("yyyy-MM-dd HH:mm:ss");
+        dataSync(begintime,endTime,"raw");
     }
     public static void dataSync(String beginTime,String endTime, String raw) {
         SparkConf conf = new SparkConf();
@@ -42,10 +44,10 @@ public class caseParticipantSync {
         String tableName = "t_mediation_case";//args[1];
         String targetTableName = "t_mediation_participant";
         String beginTimeStr = DateUtil.parse(beginTime).toString("yyyy-MM-dd HH:mm:ss");
-        String endTimeStr = DateUtil.parse(beginTime).toString("yyyy-MM-dd HH:mm:ss");
+        String endTimeStr = DateUtil.parse(endTime).toString("yyyy-MM-dd HH:mm:ss");
         //获取来源表数据
-        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName,"create_time",beginTimeStr,endTimeStr,"oneday");
-
+        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName,"create_time",beginTimeStr,endTimeStr,raw);
+        rawDF.show();
         //转化为目标表结构
         Dataset<t_mediation_participant> tcDF = rawDF
 //                .where(rawDF.col("create_time").$greater(beginTime))
@@ -53,7 +55,7 @@ public class caseParticipantSync {
 
         //数据入库前删除当前时间段表数据
 //        deleteTableBeforeInsert(targetTableName, DataSource.HHM.getUrl(),DataSource.HHM.getUser(), DataSource.HHM.getPassword(), beginTimeStr,endTimeStr,"update_time","2");
-        tcDF.distinct().show(10);
+//        tcDF.distinct().show(10);
         tcDF
                 .distinct()
                 .repartition(20)
@@ -75,7 +77,7 @@ public class caseParticipantSync {
             //调解机构/调解员标识：1 调解机构、 2 调解员、3 协同调解员
             tmediationcasepeople.setFlag(1);
             //创建日期
-            tmediationcasepeople.setCreate_time(DateUtil.date().toString());
+            tmediationcasepeople.setCreate_time(DateUtil.now());
             //更新日期
             tmediationcasepeople.setUpdate_time(DateUtil.now());
             //纠纷机构id 766为肥东

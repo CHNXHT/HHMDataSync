@@ -18,8 +18,8 @@ import static com.idata.hhmdataconnector.utils.tableUtil.deleteTableBeforeInsert
  */
 public class ajblTJWYHParticpantSync {
     public static void main(String[] args) {
-        String beginTime = DateUtil.beginOfDay(DateUtil.lastMonth()).toString("yyyy-MM-dd HH:mm:ss");
-        String endTime = DateUtil.beginOfDay(DateUtil.yesterday()).toString("yyyy-MM-dd HH:mm:ss");
+        String beginTime = "2017-07-01";//DateUtil.beginOfDay(DateUtil.lastMonth()).toString("yyyy-MM-dd HH:mm:ss");
+        String endTime = "2023-07-23";//DateUtil.beginOfDay(DateUtil.yesterday()).toString("yyyy-MM-dd HH:mm:ss");
         dataSync(beginTime,endTime,"raw");
     }
 
@@ -48,41 +48,42 @@ public class ajblTJWYHParticpantSync {
         String endTimeStr = DateUtil.parse(endTime).toString("yyyy-MM-dd HH:mm:ss");
         //获取来源表数据
         Dataset<Row> rawCaseDF = getRawDF(spark, "t_mediation_case", "HHM","","","","")
-                .select("id","case_num");
-
+                .select("id","case_num").withColumnRenamed("id","id1");
+//        System.out.println("===========casecount========"+rawCaseDF.count());
         Dataset<Row> rawAJBLDF = getRawDF(spark, "T_SJKJ_RMTJ_AJBL", "CF",timeField,beginTimeStr,endTimeStr,raw)
                 .select("SLDW","AJBH");
-
+//        System.out.println("===========T_SJKJ_RMTJ_AJBLcount========"+rawCaseDF.count());
         Dataset<Row> rawTJWYHDF = getRawDF(spark, "T_SJKJ_RMTJ_TJWYH", "CF","","","","")
                 .select("XZDQ","TWHMC");
-
+//        System.out.println("===========T_SJKJ_RMTJ_TJWYHcount========"+rawCaseDF.count());
         Dataset<Row> AJBL_TJWYH_DF = rawAJBLDF
                 .join(rawTJWYHDF, rawAJBLDF.col("SLDW").equalTo(rawTJWYHDF.col("TWHMC")),"left")
                 .select("AJBH","XZDQ")
                 .distinct();
-        System.out.println(AJBL_TJWYH_DF.count());
+//        System.out.println("===========AJBL_TJWYH_DF========"+rawCaseDF.count());
 
         Dataset<Row> caseJoinDF = AJBL_TJWYH_DF
                 .join(rawCaseDF, rawCaseDF.col("case_num").equalTo(AJBL_TJWYH_DF.col("AJBH")),"left")
                 .distinct();
-
+//        System.out.println("===========caseJoinDF========"+rawCaseDF.count());
         Dataset<Row> organizationDF = getRawDF(spark, "t_organization", "HHM","","","","")
-                .select("id","county","parent_id");
-//                .where("town = ''")
-//                .where("county !=''");
+                .select("id","county","parent_id")
+                .where("town = ''")
+                .where("county !=''");
 
         Dataset<Row> organCountryDF = organizationDF.withColumn("county_6", organizationDF.col("county").substr(0, 6));
 //        organCountryDF.show();
         Dataset<Row> resDF = caseJoinDF.join(organCountryDF, caseJoinDF.col("XZDQ").equalTo(organCountryDF.col("county_6")));
 
-        resDF.where("parent_id='221'").show();
+//        resDF.show();
 
         //转化为目标表结构
         Dataset<t_mediation_participant> tcDF = resDF
                 .map(new convertToTMediationParticipant(), Encoders.bean(t_mediation_participant.class));
+
         //数据入库前删除当前时间段表数据
         deleteTableBeforeInsert(targetTableName, DataSource.HHM.getUrl(),DataSource.HHM.getUser(), DataSource.HHM.getPassword(), beginTimeStr,endTimeStr,"update_time","2");
-        tcDF.show(10);
+//        System.out.println("========================================start========================="+tcDF.count());
         tcDF
                 .distinct()
                 .repartition(20)
@@ -98,8 +99,8 @@ public class ajblTJWYHParticpantSync {
         public t_mediation_participant apply (Row cas){
             t_mediation_participant tmediationcasepeople = new t_mediation_participant();
             //纠纷信息的主键id
-            if(cas.getAs("id") !=null){
-                tmediationcasepeople.setCase_id(Long.parseLong(cas.getAs("id").toString()));
+            if(cas.getAs("id1") !=null){
+                tmediationcasepeople.setCase_id(Long.parseLong(cas.getAs("id1").toString()));
             }
             //调解机构/调解员标识：1 调解机构、 2 调解员、3 协同调解员
             tmediationcasepeople.setFlag(1);
@@ -112,7 +113,7 @@ public class ajblTJWYHParticpantSync {
                 tmediationcasepeople.setOrg_id(Long.parseLong(cas.getAs("parent_id").toString()));
             }
 //            tmediationcasepeople.setOrg_id();
-            //案件流转参与者id 即能看到该纠纷数据的用户id 12310（叶秀）
+//            案件流转参与者id 即能看到该纠纷数据的用户id 12310（叶秀）
 //            tmediationcasepeople.setUser_id(12310L);
 
             return tmediationcasepeople;
