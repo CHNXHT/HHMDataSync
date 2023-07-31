@@ -9,8 +9,11 @@ import com.idata.hhmdataconnector.utils.idCardUtils;
 import org.apache.spark.SparkConf;
 import org.apache.spark.sql.*;
 import scala.Function1;
+
 import java.io.Serializable;
+
 import static com.idata.hhmdataconnector.ReadData.getRawDF;
+import static com.idata.hhmdataconnector.utils.EncryUtils.encrypt;
 import static com.idata.hhmdataconnector.utils.connectionUtil.hhm_mysqlProperties;
 import static com.idata.hhmdataconnector.utils.tableUtil.deleteTableBeforeInsert;
 
@@ -72,7 +75,7 @@ public class ajdsrPeopleSync {
         //数据入库前删除当前时间段表数据
         deleteTableBeforeInsert(targetTableName, DataSource.HHM.getUrl(),DataSource.HHM.getUser(), DataSource.HHM.getPassword(), beginTimeStr,endTimeStr,"create_time","1");
 
-        tcDF.show(10);
+//        tcDF.show(10);
         //执行前先清空case_source=2的数据
         tcDF
                 .repartition(20)
@@ -117,7 +120,8 @@ public class ajdsrPeopleSync {
             }
             //自然人证件号码
             if (vsjgxr.getAs("DSRZJHM")!=null) {
-                tmediationcasepeople.setIdentity_num(vsjgxr.getAs("DSRZJHM").toString());
+                String dsrzjhm = encrypt(vsjgxr.getAs("DSRZJHM").toString(), "MQ(KviV@#+$f@cPTlo*g5Wf4M6j1(PGH");
+                tmediationcasepeople.setIdentity_num(dsrzjhm);
             }
 //            //自然人性别：1 男性、2 女性
 //            if (vsjgxr.getAs("GXRXB")!=null) {
@@ -127,7 +131,8 @@ public class ajdsrPeopleSync {
 //            }
             //联系电话
             if (vsjgxr.getAs("DSRLXDH")!=null) {
-                tmediationcasepeople.setPhone(vsjgxr.getAs("DSRLXDH").toString());
+                String dsrlxdh = encrypt(vsjgxr.getAs("DSRLXDH").toString(), "lWTF^_FQS9PKMX!LrUfKkj5WkUUv9Sxs");
+                tmediationcasepeople.setPhone(dsrlxdh);
             }
             //地址-国家行政区代码
 //            if (vsjgxr.getAs("GXSJ")!=null) {

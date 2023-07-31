@@ -21,7 +21,7 @@ public class RawDataSync {
         String timeField = "SLRQ";
         String begintime = DateUtil.beginOfDay(DateUtil.lastMonth()).toString("yyyy-MM-dd HH:mm:ss");
         String endtime = DateUtil.beginOfDay(DateUtil.lastMonth()).toString("yyyy-MM-dd HH:mm:ss");
-        syncData(dataSourceName,tableName,raw,timeField,begintime,endtime);
+        MultisyncData("CF","CF_ORIGIN","T_SJKJ_RMTJ_TJWYH","",timeField,begintime,endtime);
     }
 
     public static void syncData(String dataSourceName, String tableName , String raw, String timeField, String beginTime,String endTime) throws SQLException {
@@ -76,7 +76,7 @@ public class RawDataSync {
                 .master("local[20]")
                 .getOrCreate();
         Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName, timeField, beginTime,endTime, raw);
-        rawDF.show(10);
+//        rawDF.show(10);
 //        /*
 //          获取Oracle表的字段结构
 //         */

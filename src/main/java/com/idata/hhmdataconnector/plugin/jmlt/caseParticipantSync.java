@@ -17,11 +17,9 @@ import static com.idata.hhmdataconnector.utils.connectionUtil.hhm_mysqlPropertie
  */
 public class caseParticipantSync {
     public static void main(String[] args) {
-        String begintime = DateUtil.beginOfDay(DateUtil.lastMonth()).toString("yyyy-MM-dd HH:mm:ss");
-
-
-        String endTime = DateUtil.beginOfDay(DateUtil.yesterday()).toString("yyyy-MM-dd HH:mm:ss");
-        dataSync(begintime,endTime,"raw");
+        String beginTime = "2017-07-01";//DateUtil.beginOfDay(DateUtil.lastMonth()).toString("yyyy-MM-dd HH:mm:ss");
+        String endTime = "2023-07-24";//DateUtil.beginOfDay(DateUtil.yesterday()).toString("yyyy-MM-dd HH:mm:ss");
+        dataSync(beginTime,endTime,"raw");
     }
     public static void dataSync(String beginTime,String endTime, String raw) {
         SparkConf conf = new SparkConf();
@@ -46,8 +44,8 @@ public class caseParticipantSync {
         String beginTimeStr = DateUtil.parse(beginTime).toString("yyyy-MM-dd HH:mm:ss");
         String endTimeStr = DateUtil.parse(endTime).toString("yyyy-MM-dd HH:mm:ss");
         //获取来源表数据
-        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName,"create_time",beginTimeStr,endTimeStr,raw);
-        rawDF.show();
+        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName,"create_time",beginTimeStr,endTimeStr,raw).where("case_source ='1'");
+//        rawDF.show();
         //转化为目标表结构
         Dataset<t_mediation_participant> tcDF = rawDF
 //                .where(rawDF.col("create_time").$greater(beginTime))

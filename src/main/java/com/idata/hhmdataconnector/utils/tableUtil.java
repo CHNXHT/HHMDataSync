@@ -57,7 +57,7 @@ public class tableUtil {
             deleteTableQuery = String.format("delete from "+ tableName+ " where "+ timeFiled +" between '"+ beginTime+"' and '"+endTime+"'");
         }
 
-        System.out.println(deleteTableQuery);
+//        System.out.println(deleteTableQuery);
         // Create statement and execute the query
         Statement statement = null;
         try {

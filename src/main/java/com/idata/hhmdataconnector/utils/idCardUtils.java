@@ -20,18 +20,18 @@ public class idCardUtils {
      */
     public static int getAgeByIDNumber(String idNumbers) {
         String idNumber = idNumbers.replaceAll(" ", "");
-        String dateStr;
+        String dar;
         if (idNumber.length() == 15) {
-            dateStr = "19" + idNumber.substring(6, 12);
+            dar = "19" + idNumber.substring(6, 12);
         } else if (idNumber.length() == 18) {
-            dateStr = idNumber.substring(6, 14);
+            dar = idNumber.substring(6, 14);
         } else {//默认是合法身份证号，但不排除有意外发生
             return invalidAge;
         }
 
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyyMMdd");
         try {
-            Date birthday = simpleDateFormat.parse(dateStr);
+            Date birthday = simpleDateFormat.parse(dar);
             return getAgeByDate(birthday);
         } catch (ParseException e) {
             return invalidAge;
@@ -42,12 +42,12 @@ public class idCardUtils {
     /**
      * 根据生日计算年龄
      *
-     * @param dateStr 这样格式的生日 1990-01-01
+     * @param dar 这样格式的生日 1990-01-01
      */
-    public static int getAgeByDateString(String dateStr) {
+    public static int getAgeByDaring(String dar) {
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
         try {
-            Date birthday = simpleDateFormat.parse(dateStr);
+            Date birthday = simpleDateFormat.parse(dar);
             return getAgeByDate(birthday);
         } catch (ParseException e) {
             return invalidAge;

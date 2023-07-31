@@ -19,7 +19,7 @@ import static com.idata.hhmdataconnector.utils.tableUtil.deleteTableBeforeInsert
 public class ajblTJWYHParticpantSync {
     public static void main(String[] args) {
         String beginTime = "2017-07-01";//DateUtil.beginOfDay(DateUtil.lastMonth()).toString("yyyy-MM-dd HH:mm:ss");
-        String endTime = "2023-07-23";//DateUtil.beginOfDay(DateUtil.yesterday()).toString("yyyy-MM-dd HH:mm:ss");
+        String endTime = "2023-07-24";//DateUtil.beginOfDay(DateUtil.yesterday()).toString("yyyy-MM-dd HH:mm:ss");
         dataSync(beginTime,endTime,"raw");
     }
 
@@ -47,44 +47,48 @@ public class ajblTJWYHParticpantSync {
         String beginTimeStr = DateUtil.parse(beginTime).toString("yyyy-MM-dd HH:mm:ss");
         String endTimeStr = DateUtil.parse(endTime).toString("yyyy-MM-dd HH:mm:ss");
         //获取来源表数据
-        Dataset<Row> rawCaseDF = getRawDF(spark, "t_mediation_case", "HHM","","","","")
-                .select("id","case_num").withColumnRenamed("id","id1");
-//        System.out.println("===========casecount========"+rawCaseDF.count());
+        Dataset<Row> rawCaseDF = getRawDF(spark, "t_mediation_case", "HHM","create_time",beginTimeStr,endTimeStr,raw)
+                .select("id","case_num").withColumnRenamed("id","id1").where("case_source ='2'");
+
+        //twh
+        Dataset<Row> twhDF = getRawDF(spark, "t_twh_code", "HHM","create_time",beginTimeStr,endTimeStr,"");
+
+        twhDF.createOrReplaceTempView("t_twh_code_view");
+        Dataset<Row> t_organizationDF = getRawDF(spark, "t_organization", "HHM","create_time",beginTimeStr,endTimeStr,"");
+        t_organizationDF.createOrReplaceTempView("t_organization_view");
+
+        Dataset<Row> sql = spark.sql("SELECT id,twh from\n" +
+                "(SELECT\n" +
+                "\tid,\n" +
+                "\tCONCAT( province, \",\", city, \",\", county, \",\", IFNULL(town,''), \",\", IFNULL( village, '' ) ) AS place_code \n" +
+                "FROM\n" +
+                "\tt_organization_view\n" +
+                "\t) a join(SELECT * from t_twh_code_view) b on a.place_code = b.place_code")
+                .select("id","twh");
+
+
+//        sql.show();
+
+//        //
+//
         Dataset<Row> rawAJBLDF = getRawDF(spark, "T_SJKJ_RMTJ_AJBL", "CF",timeField,beginTimeStr,endTimeStr,raw)
                 .select("SLDW","AJBH");
-//        System.out.println("===========T_SJKJ_RMTJ_AJBLcount========"+rawCaseDF.count());
-        Dataset<Row> rawTJWYHDF = getRawDF(spark, "T_SJKJ_RMTJ_TJWYH", "CF","","","","")
-                .select("XZDQ","TWHMC");
-//        System.out.println("===========T_SJKJ_RMTJ_TJWYHcount========"+rawCaseDF.count());
-        Dataset<Row> AJBL_TJWYH_DF = rawAJBLDF
-                .join(rawTJWYHDF, rawAJBLDF.col("SLDW").equalTo(rawTJWYHDF.col("TWHMC")),"left")
-                .select("AJBH","XZDQ")
-                .distinct();
-//        System.out.println("===========AJBL_TJWYH_DF========"+rawCaseDF.count());
 
-        Dataset<Row> caseJoinDF = AJBL_TJWYH_DF
-                .join(rawCaseDF, rawCaseDF.col("case_num").equalTo(AJBL_TJWYH_DF.col("AJBH")),"left")
-                .distinct();
-//        System.out.println("===========caseJoinDF========"+rawCaseDF.count());
-        Dataset<Row> organizationDF = getRawDF(spark, "t_organization", "HHM","","","","")
-                .select("id","county","parent_id")
-                .where("town = ''")
-                .where("county !=''");
+        Dataset<Row> joinDF = rawAJBLDF.join(rawCaseDF, rawAJBLDF.col("AJBH").equalTo(rawCaseDF.col("case_num")));
 
-        Dataset<Row> organCountryDF = organizationDF.withColumn("county_6", organizationDF.col("county").substr(0, 6));
-//        organCountryDF.show();
-        Dataset<Row> resDF = caseJoinDF.join(organCountryDF, caseJoinDF.col("XZDQ").equalTo(organCountryDF.col("county_6")));
-
+        Dataset<Row> resDF = joinDF.join(sql, joinDF.col("SLDW").equalTo(sql.col("twh")));
 //        resDF.show();
+
 
         //转化为目标表结构
         Dataset<t_mediation_participant> tcDF = resDF
                 .map(new convertToTMediationParticipant(), Encoders.bean(t_mediation_participant.class));
 
-        //数据入库前删除当前时间段表数据
+//        //数据入库前删除当前时间段表数据
         deleteTableBeforeInsert(targetTableName, DataSource.HHM.getUrl(),DataSource.HHM.getUser(), DataSource.HHM.getPassword(), beginTimeStr,endTimeStr,"update_time","2");
 //        System.out.println("========================================start========================="+tcDF.count());
         tcDF
+                .where("case_id is not null")
                 .distinct()
                 .repartition(20)
                 .write()
@@ -109,12 +113,17 @@ public class ajblTJWYHParticpantSync {
             //更新日期
             tmediationcasepeople.setUpdate_time(DateUtil.now());
             //纠纷机构id 766为肥东
-            if(cas.getAs("parent_id") !=null){
-                tmediationcasepeople.setOrg_id(Long.parseLong(cas.getAs("parent_id").toString()));
+            if(cas.getAs("id") !=null){
+                tmediationcasepeople.setOrg_id(Long.parseLong(cas.getAs("id").toString()));
+            }
+            if(cas.getAs("id") !=null &&  cas.getAs("id").toString().equals("221")){
+                tmediationcasepeople.setUser_id(19200L);
+            }else {
+                tmediationcasepeople.setUser_id(10296L);
             }
 //            tmediationcasepeople.setOrg_id();
 //            案件流转参与者id 即能看到该纠纷数据的用户id 12310（叶秀）
-//            tmediationcasepeople.setUser_id(12310L);
+
 
             return tmediationcasepeople;
         }

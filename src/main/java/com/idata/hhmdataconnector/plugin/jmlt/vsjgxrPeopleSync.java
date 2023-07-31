@@ -14,6 +14,7 @@ import scala.Function1;
 import java.io.Serializable;
 
 import static com.idata.hhmdataconnector.ReadData.getRawDF;
+import static com.idata.hhmdataconnector.utils.PhoneUtil.encryptPhoneNumber;
 import static com.idata.hhmdataconnector.utils.connectionUtil.hhm_mysqlProperties;
 import static com.idata.hhmdataconnector.utils.tableUtil.deleteTableBeforeInsert;
 
@@ -67,15 +68,15 @@ public class vsjgxrPeopleSync {
         Dataset<Row> joinDF = rowDF
                 .join(caseDF, rowDF.col("AJID").equalTo(caseDF.col("resource_id")), "left")
                 .join(vzdDF, rowDF.col("MZ").equalTo(vzdDF.col("DM")), "left").where(vzdDF.col("LXJP").equalTo("MZ"));
-        joinDF.show(10);
+//        joinDF.show(10);
         //转化为目标表结构
         Dataset<t_mediation_case_people> tcDF = joinDF
                 .map(new convertToTMediationPeople(), Encoders.bean(t_mediation_case_people.class));
 
         //数据入库前删除当前时间段表数据
-        deleteTableBeforeInsert(targetTableName, DataSource.HHM.getUrl(),DataSource.HHM.getUser(), DataSource.HHM.getPassword(), beginTimeStr,endTimeStr,"create_time","1");
+//        deleteTableBeforeInsert(targetTableName, DataSource.HHM.getUrl(),DataSource.HHM.getUser(), DataSource.HHM.getPassword(), beginTimeStr,endTimeStr,"create_time","1");
 
-        tcDF.show(10);
+//        tcDF.show(10);
         tcDF
                 .repartition(20)
                 .write()
@@ -124,7 +125,8 @@ public class vsjgxrPeopleSync {
             }
             //联系电话
             if (vsjgxr.getAs("GXRLXFS")!=null) {
-                tmediationcasepeople.setPhone(vsjgxr.getAs("GXRLXFS").toString());
+                String encryptedPhoneNumber = encryptPhoneNumber(vsjgxr.getAs("GXRLXFS").toString());
+                tmediationcasepeople.setPhone(encryptedPhoneNumber);
             }
             //地址-国家行政区代码
 //            if (vsjgxr.getAs("GXSJ")!=null) {

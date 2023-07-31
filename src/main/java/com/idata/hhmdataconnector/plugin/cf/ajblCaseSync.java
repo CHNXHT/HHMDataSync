@@ -18,6 +18,11 @@ import static com.idata.hhmdataconnector.utils.tableUtil.deleteTableBeforeInsert
  * @date: 2023/7/10 16:29
  */
 public class ajblCaseSync {
+    public static void main(String[] args) {
+        String beginTime = "2017-07-01";//DateUtil.beginOfDay(DateUtil.lastMonth()).toString("yyyy-MM-dd HH:mm:ss");
+        String endTime = "2023-07-23";//DateUtil.beginOfDay(DateUtil.yesterday()).toString("yyyy-MM-dd HH:mm:ss");
+        dataSync(beginTime,endTime,"raw");
+    }
 
     public static void dataSync(String beginTime,String endTime, String raw) {
         SparkConf conf = new SparkConf();
@@ -44,35 +49,39 @@ public class ajblCaseSync {
 
         String beginTimeStr = DateUtil.parse(beginTime).toString("yyyy-MM-dd HH:mm:ss");
         String endTimeStr = DateUtil.parse(endTime).toString("yyyy-MM-dd HH:mm:ss");
-        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName, timeField, beginTimeStr,endTimeStr, raw);
+        Dataset<Row> rawDF1 = getRawDF(spark, tableName, dataSourceName, timeField, beginTimeStr,endTimeStr, raw);
 
         //获取来源表数据
         if(!beginTimeStr.equals("raw")){
-            rawDF.where(rawDF.col("FSRQ").$greater(beginTime));
+            rawDF1.where(rawDF1.col("FSRQ").$greater(beginTime));
         }
-//        Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName).filter();
+        Dataset<Row> twhDF = getRawDF(spark, "t_twh_code", "HHM", timeField, beginTimeStr,endTimeStr, "");
+        Dataset<Row> rawDF = rawDF1.join(twhDF, rawDF1.col("SLDW").equalTo(twhDF.col("twh")));
+        System.out.println("==========rawDF========="+rawDF.count());
+
         Dataset<Row> rowDataset = rawDF.withColumn("SAJE", rawDF.col("SAJE").cast(DataTypes.LongType));
-        //todo code SLDAW->T_SJKJ_RMTJ_TJWYH(XZDQ)->t_organization(province,city,county)
-        Dataset<Row> TJWYHDF = getRawDF(spark, "T_SJKJ_RMTJ_TJWYH", dataSourceName, timeField, beginTimeStr,endTimeStr, "")
-                .select("TWHMC","XZDQ")
-                .distinct();
+//        rowDataset.show();
+//        //todo code SLDAW->T_SJKJ_RMTJ_TJWYH(XZDQ)->t_organization(province,city,county)
+//        Dataset<Row> TJWYHDF = getRawDF(spark, "T_SJKJ_RMTJ_TJWYH", dataSourceName, timeField, beginTimeStr,endTimeStr, "")
+//                .select("TWHMC","XZDQ")
+//                .distinct();
+//
+//        Dataset<Row> ORGDF = getRawDF(spark, "t_organization", "HHM", timeField, beginTimeStr,endTimeStr, "")
+//                .select("province","city","county")
+//                .where("town = ''")
+//                .distinct();
+//
+//        Dataset<Row> raw_tjwyhDF = rawDF.join(TJWYHDF, rawDF.col("SLDW").equalTo(TJWYHDF.col("TWHMC")), "left");
 
-        Dataset<Row> ORGDF = getRawDF(spark, "t_organization", "HHM", timeField, beginTimeStr,endTimeStr, "")
-                .select("province","city","county")
-                .where("town = ''")
-                .distinct();
-//        ORGDF.withColumn("aa",ORGDF.col("county").substr(0,6)).show(5);
-
-        Dataset<Row> raw_tjwyhDF = rawDF.join(TJWYHDF, rawDF.col("SLDW").equalTo(TJWYHDF.col("TWHMC")), "left");
 
         //定义数据源对象
-        Dataset<Row> rowDF = raw_tjwyhDF.join(ORGDF, ORGDF.col("county").substr(0,6).equalTo(raw_tjwyhDF.col("XZDQ")),"left");
+//        Dataset<Row> rowDF = rowDataset.join(ORGDF, ORGDF.col("county").substr(0,6).equalTo(raw_tjwyhDF.col("XZDQ")),"left");
 
         //转化为目标表结构
-        Dataset<t_mediation_case> tcDF = rowDF
+        Dataset<t_mediation_case> tcDF = rowDataset
                 .map(new ConvertToTMediationCase(), Encoders.bean(t_mediation_case.class));
-        tcDF.show(10);
-        //数据入库前删除当前时间段表数据
+//        System.out.println("===========placecodenull==========="+tcDF.where("place_code is null").count());
+//        //数据入库前删除当前时间段表数据
         deleteTableBeforeInsert(targetTableName, DataSource.HHM.getUrl(),DataSource.HHM.getUser(), DataSource.HHM.getPassword(), beginTimeStr,endTimeStr,"create_time","2");
 
         tcDF
@@ -89,8 +98,8 @@ public class ajblCaseSync {
         @Override
         public t_mediation_case apply(Row ajbl) {
             t_mediation_case tMediationCase = new t_mediation_case();
-            if (ajbl.getAs("BH")!=null){
-                tMediationCase.setResource_id(ajbl.getAs("BH").toString());
+            if (ajbl.getAs("twh")!=null){
+                tMediationCase.setResource_id(ajbl.getAs("twh").toString());
             }
 
             //创建时间
@@ -98,7 +107,7 @@ public class ajblCaseSync {
                 tMediationCase.setCreate_time(ajbl.getAs("SLRQ").toString());
             }
             //修改时间
-//            tMediationCase.setUpdate_time(DateUtils.strToTsSFM(ajbl.getGXSJ()));
+            tMediationCase.setUpdate_time(DateUtil.now());
             //纠纷编号
             if(ajbl.getAs("AJBH")!=null){
                 tMediationCase.setCase_num(ajbl.getAs("AJBH").toString());
@@ -125,15 +134,19 @@ public class ajblCaseSync {
             }
 
             //todo code SLDAW->T_SJKJ_RMTJ_TJWYH(XZDQ)->t_organization(province,city,county)
-            if ( ajbl.getAs("province")!=null && ajbl.getAs("city")!=null && ajbl.getAs("county")!=null){
-                String placeCode= ajbl.getAs("province").toString()+","+ajbl.getAs("city").toString()+","+ajbl.getAs("county").toString();
-                tMediationCase.setPlace_code(placeCode);
+            if ( ajbl.getAs("place_code")!=null){
+//                String placeCode= ajbl.getAs("province").toString()+","+ajbl.getAs("city").toString()+","+ajbl.getAs("county").toString();
+                tMediationCase.setPlace_code(ajbl.getAs("place_code").toString());
             }
             //todo 状态（成功3，结束4）
-            if(ajbl.getAs("TJJG")!=null && ajbl.getAs("TJJG").toString().equals("成功")){
-                tMediationCase.setStatus(3);
-            }else if(ajbl.getAs("TJJG")!=null && ajbl.getAs("TJJG").toString().equals("不成功")){
+//            if(ajbl.getAs("TJJG")!=null && ajbl.getAs("TJJG").toString().equals("成功")){
+//                tMediationCase.setStatus(3);
+//            }
+            if(ajbl.getAs("TJJG")!=null && ajbl.getAs("TJJG").toString().equals("不成功")){
                 tMediationCase.setStatus(4);
+            }
+            else {
+                tMediationCase.setStatus(3);
             }
 
             //纠纷发生日期

@@ -49,11 +49,7 @@ public class vsjxxCaseSync {
 
         Dataset<Row> rawDF = getRawDF(spark, tableName, dataSourceName,"GXSJ",beginTimeStr,endTimeStr,raw);
 
-        //todo t_manager_tag_dict
-//        Dataset<Row> tagDF = getRawDF(spark, "t_manage_tag_dict", "HHM","GXSJ",beginTimeStr,endTimeStr,"")
-//                .select("name","code")
-//                .where("parent_code = 'CaseType'")
-//                .distinct();
+
         // jf_code
         Dataset<Row> jf_codeDF = getRawDF(spark, "t_manage_jmlt_jf_code", "HHM","GXSJ",beginTimeStr,endTimeStr,"")
                 .select("name","code","tag_code").withColumnRenamed("code","code1")
@@ -61,24 +57,18 @@ public class vsjxxCaseSync {
 
         Dataset<Row> jf_raw_join = rawDF.join(jf_codeDF, rawDF.col("AJXL").equalTo(jf_codeDF.col("code1")),"left");
 
-//        Dataset<Row> res_join = jf_raw_join.join(tagDF, jf_raw_join.col("name").contains(tagDF.col("name")),"left");
-
         Dataset<Row> rowDataset = jf_raw_join.withColumn("SJRS", rawDF.col("SJRS").cast(DataTypes.LongType));
-        rowDataset.show();
-//        res_join.show();
-//        res_join.printSchema();
 
-        //定义数据源对象
-        //                .as(Encoders.bean(V_SJXX.class));
 
         //转化为目标表结构
         Dataset<t_mediation_case> tcDF = rowDataset
                 .map(new ConvertToTMediationCase(), Encoders.bean(t_mediation_case.class));
 
         //数据入库前删除当前时间段表数据
-        deleteTableBeforeInsert(targetTableName, DataSource.HHM.getUrl(),DataSource.HHM.getUser(), DataSource.HHM.getPassword(), beginTimeStr,endTimeStr,"create_time","1");
-//        tcDF.show();
+//        deleteTableBeforeInsert(targetTableName, DataSource.HHM.getUrl(),DataSource.HHM.getUser(), DataSource.HHM.getPassword(), beginTimeStr,endTimeStr,"create_time","1");
+
         tcDF
+                .distinct()
                 .write()
                 .mode(SaveMode.Append)
                 .jdbc(DataSource.HHM.getUrl(), targetTableName, hhm_mysqlProperties());
@@ -144,13 +134,6 @@ public class vsjxxCaseSync {
             if (vsjxx.getAs("TJZT") != null) {
                 tMediationCase.setResult(1);  //todo 检查确认
             }
-//            else {
-//                try {
-//                    tMediationCase.setResult(Integer.parseInt(vsjxx.getAs("TJZT").toString()));
-//                } catch (NumberFormatException e) {
-//                    // 处理转换异常，例如设定一个默认值或者抛出自定义异常
-//                }
-//            }
 
             //纠纷状态 先处理办理状态 再处理调整状态
             if(vsjxx.getAs("BLZT") != null){
