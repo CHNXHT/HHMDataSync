@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.idata.hhmdataconnector.mapper.t_mediation_caseMapper">
+
+    <resultMap id="BaseResultMap" type="com.idata.hhmdataconnector.model.hhm.t_mediation_case">
+            <id property="id" column="id" jdbcType="BIGINT"/>
+            <result property="create_time" column="create_time" jdbcType="TIMESTAMP"/>
+            <result property="update_time" column="update_time" jdbcType="TIMESTAMP"/>
+            <result property="case_num" column="case_num" jdbcType="VARCHAR"/>
+            <result property="case_description" column="case_description" jdbcType="VARCHAR"/>
+            <result property="case_type" column="case_type" jdbcType="VARCHAR"/>
+            <result property="place_code" column="place_code" jdbcType="VARCHAR"/>
+            <result property="place_detail" column="place_detail" jdbcType="VARCHAR"/>
+            <result property="occurrence_time" column="occurrence_time" jdbcType="TIMESTAMP"/>
+            <result property="request" column="request" jdbcType="VARCHAR"/>
+            <result property="method" column="method" jdbcType="INTEGER"/>
+            <result property="evidence_description" column="evidence_description" jdbcType="VARCHAR"/>
+            <result property="create_user_id" column="create_user_id" jdbcType="BIGINT"/>
+            <result property="status" column="status" jdbcType="INTEGER"/>
+            <result property="result" column="result" jdbcType="INTEGER"/>
+            <result property="doc_status" column="doc_status" jdbcType="INTEGER"/>
+            <result property="case_resource" column="case_resource" jdbcType="VARCHAR"/>
+            <result property="resource_id" column="resource_id" jdbcType="VARCHAR"/>
+            <result property="create_user_name" column="create_user_name" jdbcType="VARCHAR"/>
+            <result property="case_source" column="case_source" jdbcType="INTEGER"/>
+            <result property="case_level" column="case_level" jdbcType="INTEGER"/>
+            <result property="involved_people" column="involved_people" jdbcType="VARCHAR"/>
+            <result property="repeat_visit" column="repeat_visit" jdbcType="INTEGER"/>
+            <result property="other_situation" column="other_situation" jdbcType="INTEGER"/>
+            <result property="special_instructions" column="special_instructions" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,create_time,update_time,
+        case_num,case_description,case_type,
+        place_code,place_detail,occurrence_time,
+        request,method,evidence_description,
+        create_user_id,status,result,
+        doc_status,case_resource,resource_id,
+        create_user_name,case_source,case_level,
+        involved_people,repeat_visit,other_situation,
+        special_instructions
+    </sql>
+
+    <insert id="updateOrInsertCaseInfo" useGeneratedKeys="true" parameterType="list" >
+        replace into t_twh_code_copy1
+        (<include refid="Base_Column_List"/>)
+        VALUES
+        <foreach collection="list" item="it" separator=",">
+            (
+            #{it.create_time},
+            #{it.update_time},
+            #{it.case_num},
+            #{it.case_description},
+            #{it.case_type},
+            #{it.place_code},
+            #{it.place_detail},
+            #{it.occurrence_time},
+            #{it.request},
+            #{it.method},
+            #{it.evidence_description},
+            #{it.create_user_id},
+            #{it.status},
+            #{it.doc_status},
+            #{it.case_resource},
+            #{it.resource_id},
+            #{it.create_user_name},
+            #{it.case_source},
+            #{it.case_level},
+            #{it.involved_people},
+            #{it.repeat_visit},
+            #{it.other_situation},
+            #{it.special_instructions}
+            )
+        </foreach>
+
+    </insert>
+
+</mapper>
